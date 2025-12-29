@@ -1,18 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, CheckCircle2, Trash2 } from 'lucide-react';
-import { Room } from '../types';
-import { MOCK_ROOMS } from '../constants';
+import { Room, Amenity } from '../types';
+import { api } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { NewRoomModal } from './NewRoomModal';
 import { DeleteRoomConfirmationModal } from './DeleteRoomConfirmationModal';
 
 export const RoomsManagementView: React.FC = () => {
-  const [rooms, setRooms] = useState<Room[]>(MOCK_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    try {
+      const apiRooms = await api.rooms.getAll();
+      const mappedRooms: Room[] = apiRooms.map(r => ({
+        id: String(r.id),
+        name: r.name,
+        capacity: r.capacity,
+        location: r.location,
+        image: r.image || '',
+        amenities: (r.amenities as Amenity[]) || [],
+        isAvailable: r.isAvailable,
+        status: r.status as 'active' | 'maintenance' | undefined,
+        pricePerHour: r.pricePerHour || undefined,
+      }));
+      setRooms(mappedRooms);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const triggerToast = (msg: string) => {
     setShowToast({ show: true, msg });
@@ -26,30 +53,37 @@ export const RoomsManagementView: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedRoom) {
-      setRooms(prev => prev.filter(r => r.id !== selectedRoom.id));
-      setIsDeleteModalOpen(false);
-      setSelectedRoom(null);
-      triggerToast('Sala removida com sucesso.');
+      try {
+        await api.rooms.delete(parseInt(selectedRoom.id));
+        setIsDeleteModalOpen(false);
+        setSelectedRoom(null);
+        triggerToast('Sala removida com sucesso.');
+        loadRooms();
+      } catch (error) {
+        console.error('Error deleting room:', error);
+      }
     }
   };
 
-  const handleSaveRoom = (roomData: any) => {
-    const newRoom: Room = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: roomData.name,
-      location: roomData.location,
-      capacity: Number(roomData.capacity),
-      image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
-      amenities: roomData.amenities,
-      isAvailable: true,
-      status: 'active'
-    };
-    
-    setRooms(prev => [newRoom, ...prev]);
-    setIsModalOpen(false);
-    triggerToast('Sala cadastrada com sucesso!');
+  const handleSaveRoom = async (roomData: any) => {
+    try {
+      await api.rooms.create({
+        name: roomData.name,
+        location: roomData.location,
+        capacity: Number(roomData.capacity),
+        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
+        amenities: roomData.amenities,
+        isAvailable: true,
+        status: 'active'
+      });
+      setIsModalOpen(false);
+      triggerToast('Sala cadastrada com sucesso!');
+      loadRooms();
+    } catch (error) {
+      console.error('Error saving room:', error);
+    }
   };
 
   return (

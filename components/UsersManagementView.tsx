@@ -1,18 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { User } from '../types';
-import { MOCK_USERS } from '../constants';
+import { api } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { NewUserModal } from './NewUserModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 export const UsersManagementView: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const apiUsers = await api.users.getAll();
+      const mappedUsers: User[] = apiUsers.map(u => ({
+        id: String(u.id),
+        name: u.name,
+        email: u.email,
+        role: u.role as 'admin' | 'colaborador',
+        status: u.status as 'ativo' | 'inativo',
+        avatar: u.avatar || undefined,
+        cpf: u.cpf || undefined,
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const triggerToast = (msg: string) => {
     setShowToast({ show: true, msg });
@@ -34,30 +59,36 @@ export const UsersManagementView: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleSaveUser = (userData: any) => {
-    if (selectedUser) {
-      // Edit logic
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u));
-      triggerToast('Usuário atualizado com sucesso!');
-    } else {
-      // Create logic
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        status: 'ativo',
-        ...userData,
-        avatar: `https://i.pravatar.cc/150?u=${Math.random()}`
-      };
-      setUsers(prev => [newUser, ...prev]);
-      triggerToast('Novo usuário cadastrado!');
+  const handleSaveUser = async (userData: any) => {
+    try {
+      if (selectedUser) {
+        await api.users.update(parseInt(selectedUser.id), userData);
+        triggerToast('Usuário atualizado com sucesso!');
+      } else {
+        await api.users.create({
+          ...userData,
+          password: userData.password || 'senha123',
+          avatar: `https://i.pravatar.cc/150?u=${Math.random()}`
+        });
+        triggerToast('Novo usuário cadastrado!');
+      }
+      loadUsers();
+    } catch (error) {
+      console.error('Error saving user:', error);
     }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (selectedUser) {
-      setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-      setIsDeleteModalOpen(false);
-      setSelectedUser(null);
-      triggerToast('Usuário removido do sistema.');
+      try {
+        await api.users.delete(parseInt(selectedUser.id));
+        setIsDeleteModalOpen(false);
+        setSelectedUser(null);
+        triggerToast('Usuário removido do sistema.');
+        loadUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      }
     }
   };
 

@@ -1,18 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { Resource } from '../types';
-import { MOCK_RESOURCES } from '../constants';
+import { api } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { NewResourceModal } from './NewResourceModal';
 import { DeleteResourceConfirmationModal } from './DeleteResourceConfirmationModal';
 
 export const ResourcesManagementView: React.FC = () => {
-  const [resources, setResources] = useState<Resource[]>(MOCK_RESOURCES);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  const loadResources = async () => {
+    try {
+      const apiResources = await api.resources.getAll();
+      const mappedResources: Resource[] = apiResources.map(r => ({
+        id: String(r.id),
+        name: r.name,
+        category: r.category as 'Equipamento' | 'Infraestrutura' | 'Acessório',
+        status: r.status as 'Disponível' | 'Manutenção' | 'Descontinuado',
+      }));
+      setResources(mappedResources);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const triggerToast = (msg: string) => {
     setShowToast({ show: true, msg });
@@ -34,29 +56,33 @@ export const ResourcesManagementView: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
   
-  const handleSaveResource = (resourceData: Omit<Resource, 'id'>) => {
-    if (selectedResource) {
-      // Edit logic
-      setResources(prev => prev.map(r => r.id === selectedResource.id ? { ...r, ...resourceData } : r));
-      triggerToast('Recurso atualizado com sucesso!');
-    } else {
-      // Create logic
-      const newResource: Resource = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...resourceData
-      };
-      setResources(prev => [newResource, ...prev]);
-      triggerToast('Novo recurso cadastrado!');
+  const handleSaveResource = async (resourceData: Omit<Resource, 'id'>) => {
+    try {
+      if (selectedResource) {
+        await api.resources.update(parseInt(selectedResource.id), resourceData);
+        triggerToast('Recurso atualizado com sucesso!');
+      } else {
+        await api.resources.create(resourceData);
+        triggerToast('Novo recurso cadastrado!');
+      }
+      setIsModalOpen(false);
+      loadResources();
+    } catch (error) {
+      console.error('Error saving resource:', error);
     }
-    setIsModalOpen(false);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedResource) {
-      setResources(prev => prev.filter(r => r.id !== selectedResource.id));
-      setIsDeleteModalOpen(false);
-      setSelectedResource(null);
-      triggerToast('Recurso removido com sucesso.');
+      try {
+        await api.resources.delete(parseInt(selectedResource.id));
+        setIsDeleteModalOpen(false);
+        setSelectedResource(null);
+        triggerToast('Recurso removido com sucesso.');
+        loadResources();
+      } catch (error) {
+        console.error('Error deleting resource:', error);
+      }
     }
   };
 

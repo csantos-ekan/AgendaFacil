@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { SearchFilters } from './components/SearchFilters';
@@ -10,41 +10,105 @@ import { ProfileView } from './components/ProfileView';
 import { UsersManagementView } from './components/UsersManagementView';
 import { RoomsManagementView } from './components/RoomsManagementView';
 import { ResourcesManagementView } from './components/ResourcesManagementView';
-import { MOCK_ROOMS, MOCK_RESERVATIONS, INITIAL_FILTERS } from './constants';
-import { Room, ViewState, SearchFilters as FilterType, Reservation, User } from './types';
+import { INITIAL_FILTERS } from './constants';
+import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
 import { CheckCircle2 } from 'lucide-react';
+import { api, setAuthUser } from './lib/api';
 
 const App: React.FC = () => {
-  // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
-  // App State
   const [activeTab, setActiveTab] = useState<ViewState>('search');
   const [filters, setFilters] = useState<FilterType>(INITIAL_FILTERS);
-  const [availableRooms, setAvailableRooms] = useState<Room[]>(MOCK_ROOMS);
-  const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Modal State
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // Handlers
+  useEffect(() => {
+    if (currentUser) {
+      loadRooms();
+      loadReservations();
+    }
+  }, [currentUser]);
+
+  const loadRooms = async () => {
+    try {
+      const apiRooms = await api.rooms.getAll();
+      const mappedRooms: Room[] = apiRooms.map(r => ({
+        id: String(r.id),
+        name: r.name,
+        capacity: r.capacity,
+        location: r.location,
+        image: r.image || '',
+        amenities: (r.amenities as Amenity[]) || [],
+        isAvailable: r.isAvailable,
+        status: r.status as 'active' | 'maintenance' | undefined,
+        pricePerHour: r.pricePerHour || undefined,
+      }));
+      setAvailableRooms(mappedRooms);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    }
+  };
+
+  const loadReservations = async () => {
+    if (!currentUser) return;
+    try {
+      const apiReservations = await api.reservations.getByUser(parseInt(currentUser.id));
+      const mappedReservations: Reservation[] = apiReservations.map(r => ({
+        id: String(r.id),
+        roomId: String(r.roomId),
+        roomName: r.roomName,
+        roomLocation: r.roomLocation,
+        date: r.date,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        status: r.status as 'confirmed' | 'cancelled',
+        timestamp: r.timestamp ? new Date(r.timestamp).getTime() : Date.now(),
+      }));
+      setReservations(mappedReservations);
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+    }
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
+    setAuthUser(user.id, user.role);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setAuthUser(null, null);
     setActiveTab('search');
   };
 
-  const handleSearch = () => {
-    const filtered = MOCK_ROOMS.filter(room => {
-      const capacityMatch = room.capacity >= Number(filters.capacity);
-      return capacityMatch;
-    });
-    setAvailableRooms(filtered);
+  const handleSearch = async () => {
+    setIsLoading(true);
+    try {
+      const apiRooms = await api.rooms.getAll();
+      const mappedRooms: Room[] = apiRooms.map(r => ({
+        id: String(r.id),
+        name: r.name,
+        capacity: r.capacity,
+        location: r.location,
+        image: r.image || '',
+        amenities: (r.amenities as Amenity[]) || [],
+        isAvailable: r.isAvailable,
+        status: r.status as 'active' | 'maintenance' | undefined,
+        pricePerHour: r.pricePerHour || undefined,
+      }));
+      const filtered = mappedRooms.filter(room => room.capacity >= Number(filters.capacity));
+      setAvailableRooms(filtered);
+    } catch (error) {
+      console.error('Error searching rooms:', error);
+    } finally {
+      setIsLoading(false);
+    }
     setActiveTab('search');
   };
 
@@ -53,33 +117,41 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmBooking = () => {
-    if (!selectedRoom) return;
+  const handleConfirmBooking = async () => {
+    if (!selectedRoom || !currentUser) return;
 
-    const newReservation: Reservation = {
-      id: Math.random().toString(36).substr(2, 9),
-      roomId: selectedRoom.id,
-      roomName: selectedRoom.name,
-      roomLocation: selectedRoom.location,
-      date: filters.date,
-      startTime: filters.startTime,
-      endTime: filters.endTime,
-      status: 'confirmed',
-      timestamp: Date.now(),
-    };
+    try {
+      await api.reservations.create({
+        roomId: parseInt(selectedRoom.id),
+        userId: parseInt(currentUser.id),
+        roomName: selectedRoom.name,
+        roomLocation: selectedRoom.location,
+        date: filters.date,
+        startTime: filters.startTime,
+        endTime: filters.endTime,
+        status: 'confirmed',
+      });
 
-    setReservations(prev => [newReservation, ...prev]);
-    setIsModalOpen(false);
-    setSelectedRoom(null);
-    
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
+      setIsModalOpen(false);
+      setSelectedRoom(null);
+      
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
 
-    setActiveTab('reservations');
+      loadReservations();
+      setActiveTab('reservations');
+    } catch (error) {
+      console.error('Error creating reservation:', error);
+    }
   };
 
-  const handleCancelReservation = (id: string) => {
-    setReservations(prev => prev.filter(r => r.id !== id));
+  const handleCancelReservation = async (id: string) => {
+    try {
+      await api.reservations.update(parseInt(id), { status: 'cancelled' });
+      loadReservations();
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+    }
   };
 
   // Se não estiver autenticado, renderiza a LoginView

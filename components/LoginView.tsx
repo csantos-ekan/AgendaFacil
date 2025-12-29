@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { LayoutGrid, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
-import { MOCK_USERS } from '../constants';
+import { api } from '../lib/api';
 import { User } from '../types';
 
 interface LoginViewProps {
@@ -15,26 +15,29 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    // Simulação de latência de rede para realismo de UX
-    setTimeout(() => {
-      // Comparação case-insensitive para o e-mail
-      const foundUser = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      // Lógica de senha simulada (admin123 para admin, colab123 para colab)
-      const validPassword = foundUser?.role === 'admin' ? 'admin123' : 'colab123';
-
-      if (foundUser && password === validPassword) {
-        onLogin(foundUser);
-      } else {
-        setError('E-mail ou senha incorretos. Tente novamente.');
-      }
+    try {
+      const response = await api.auth.login(email, password);
+      const apiUser = response.user;
+      const user: User = {
+        id: String(apiUser.id),
+        name: apiUser.name,
+        email: apiUser.email,
+        role: apiUser.role as 'admin' | 'colaborador',
+        status: apiUser.status as 'ativo' | 'inativo',
+        avatar: apiUser.avatar || undefined,
+        cpf: apiUser.cpf || undefined,
+      };
+      onLogin(user);
+    } catch (err: any) {
+      setError(err.message || 'E-mail ou senha incorretos. Tente novamente.');
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (

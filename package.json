@@ -4,17 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"tsx server/index.ts\" \"vite\"",
+    "server": "tsx server/index.ts",
+    "client": "vite --port 5173",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "lucide-react": "^0.561.0",
-    "react-dom": "^19.2.3",
-    "react": "^19.2.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.16.0",
+    "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.5",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
+    "lucide-react": "^0.561.0",
+    "pg": "^8.16.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "tailwind-merge": "^2.2.0",
-    "class-variance-authority": "^0.7.0"
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
