@@ -12,8 +12,9 @@ import { RoomsManagementView } from './components/RoomsManagementView';
 import { ResourcesManagementView } from './components/ResourcesManagementView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { api, setAuthUser } from './lib/api';
+import { validateReservationTime } from './lib/validation';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -120,6 +122,13 @@ const App: React.FC = () => {
   const handleConfirmBooking = async () => {
     if (!selectedRoom || !currentUser) return;
 
+    const validation = validateReservationTime(filters.date, filters.startTime, filters.endTime);
+    if (!validation.isValid) {
+      setErrorMessage(validation.error);
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
+
     try {
       await api.reservations.create({
         roomId: parseInt(selectedRoom.id),
@@ -140,7 +149,10 @@ const App: React.FC = () => {
 
       loadReservations();
       setActiveTab('reservations');
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.message || 'Erro ao criar reserva. Tente novamente.';
+      setErrorMessage(message);
+      setTimeout(() => setErrorMessage(null), 5000);
       console.error('Error creating reservation:', error);
     }
   };
@@ -271,6 +283,19 @@ const App: React.FC = () => {
           <div>
             <h4 className="font-semibold text-sm text-dark">Reserva Confirmada!</h4>
             <p className="text-xs text-medium">A sala foi agendada com sucesso.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed bottom-8 right-8 bg-white border-l-4 border-red-500 p-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up z-50">
+          <div className="bg-red-100 p-1 rounded-full">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm text-dark">Erro na Reserva</h4>
+            <p className="text-xs text-medium">{errorMessage}</p>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
+import { validateReservationTime } from "./validation";
 
 export const router = Router();
 
@@ -318,6 +319,11 @@ router.post("/reservations", async (req: Request, res: Response) => {
     
     if (!roomId || !userId || !date || !startTime || !endTime) {
       return res.status(400).json({ message: "Dados da reserva incompletos" });
+    }
+
+    const timeValidation = validateReservationTime(date, startTime, endTime);
+    if (!timeValidation.isValid) {
+      return res.status(400).json({ message: timeValidation.error });
     }
 
     const allReservations = await storage.getAllReservations();

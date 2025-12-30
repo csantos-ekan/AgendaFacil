@@ -93,6 +93,14 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2025-12-30
+- Adição de validação de horários nas reservas (frontend e backend)
+  - Hora inicial não pode ser menor que horário atual
+  - Hora final deve ser no mínimo 15 minutos após hora inicial
+  - Validação de datas passadas
+- Criação de módulo centralizado de validação (lib/validation.ts, server/validation.ts)
+- Toast de erro para feedback visual ao usuário
+
 ### 2025-12-29
 - Implementação completa do backend com Express e PostgreSQL
 - Migração de dados fictícios para banco de dados real
