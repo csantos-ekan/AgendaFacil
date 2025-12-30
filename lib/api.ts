@@ -74,6 +74,12 @@ export interface ApiReservation {
   timestamp: string | null;
 }
 
+export interface RoomAvailability {
+  roomId: number;
+  isAvailable: boolean;
+  nextAvailableTime: string | null;
+}
+
 export const api = {
   auth: {
     login: async (email: string, password: string): Promise<{ user: ApiUser }> => {
@@ -124,6 +130,11 @@ export const api = {
     },
     get: async (id: number): Promise<ApiRoom> => {
       const response = await fetch(`${API_BASE}/rooms/${id}`, { headers: getAuthHeaders() });
+      return handleResponse(response);
+    },
+    checkAvailability: async (date: string, startTime: string, endTime: string): Promise<RoomAvailability[]> => {
+      const params = new URLSearchParams({ date, startTime, endTime });
+      const response = await fetch(`${API_BASE}/rooms/availability?${params}`, { headers: getAuthHeaders() });
       return handleResponse(response);
     },
     create: async (data: Omit<ApiRoom, "id">): Promise<ApiRoom> => {

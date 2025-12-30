@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
+import { checkAllRoomsAvailability } from "./availability";
 
 export const router = Router();
 
@@ -138,6 +139,27 @@ router.get("/rooms", async (_req: Request, res: Response) => {
   } catch (error) {
     console.error("Get rooms error:", error);
     return res.status(500).json({ message: "Erro ao buscar salas" });
+  }
+});
+
+router.get("/rooms/availability", async (req: Request, res: Response) => {
+  try {
+    const { date, startTime, endTime } = req.query;
+    
+    if (!date || !startTime || !endTime) {
+      return res.status(400).json({ message: "Data, hora inicial e hora final são obrigatórias" });
+    }
+
+    const availability = await checkAllRoomsAvailability(
+      date as string,
+      startTime as string,
+      endTime as string
+    );
+    
+    return res.json(availability);
+  } catch (error) {
+    console.error("Check availability error:", error);
+    return res.status(500).json({ message: "Erro ao verificar disponibilidade" });
   }
 });
 

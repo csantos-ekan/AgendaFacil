@@ -1,0 +1,60 @@
+Objetivo:
+Implementar a lógica de disponibilidade das salas e o cálculo do
+"Próximo horário livre" com base nas reservas existentes.
+
+Regras de negócio obrigatórias:
+
+1. Status da sala (Disponível / Indisponível):
+- Cada card de sala deve exibir:
+  - "Disponível" quando NÃO existir nenhuma reserva que conflite
+    com o horário buscado pelo usuário
+  - "Indisponível" quando existir ao menos uma reserva de outro usuário
+    que conflite com o horário buscado
+- A verificação deve considerar:
+  - Data selecionada
+  - Hora inicial e hora final informadas no filtro
+- Conflito ocorre quando:
+  - O horário buscado se sobrepõe total ou parcialmente
+    a uma reserva existente da sala
+
+2. Próximo horário livre:
+- Caso a sala esteja "Indisponível", o card deve exibir o campo
+  "Próximo horário livre"
+- Esse horário deve ser:
+  - O horário mais próximo disponível após o horário atual do sistema
+  - Baseado no término da reserva mais próxima que esteja ocupando a sala
+- Exemplo:
+  - Horário atual do sistema: 09:30
+  - Sala reservada de 09:00 às 10:00
+  - Exibir: "Próximo horário livre: 10:00"
+
+3. Casos importantes a considerar:
+- Reservas futuras no mesmo dia
+- Múltiplas reservas consecutivas
+- Reservas que começam antes e terminam depois do horário buscado
+- Caso não exista reserva futura para o dia, considerar a sala disponível
+  após o último horário reservado
+
+Escopo da implementação:
+- Implementar a lógica no backend para garantir consistência
+- Retornar para o front-end:
+  - Status da sala (disponível ou indisponível)
+  - Próximo horário livre (quando aplicável)
+- O front-end deve apenas exibir as informações recebidas
+- Não alterar layout ou componentes visuais existentes
+
+Comportamento esperado no card da sala:
+- Exibir claramente:
+  - Status: Disponível (verde) ou Indisponível (vermelho)
+  - Próximo horário livre apenas quando a sala estiver indisponível
+- Atualizar dinamicamente conforme o filtro de data e horário
+
+Tecnologia:
+- Utilizar a stack já existente no projeto
+- Não introduzir novas bibliotecas sem necessidade
+
+Resultado esperado:
+- Lógica correta de conflito de horários
+- Cálculo confiável do próximo horário livre
+- Código organizado e reutilizável
+- Experiência clara e consistente para o usuário

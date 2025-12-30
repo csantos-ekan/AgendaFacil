@@ -94,6 +94,10 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2025-12-30
+- Implementação de lógica de disponibilidade das salas
+  - Verificação de conflitos com reservas existentes
+  - Cálculo do próximo horário livre quando sala está ocupada
+  - Novo endpoint GET /api/rooms/availability
 - Adição de validação de horários nas reservas (frontend e backend)
   - Hora inicial não pode ser menor que horário atual
   - Hora final deve ser no mínimo 15 minutos após hora inicial

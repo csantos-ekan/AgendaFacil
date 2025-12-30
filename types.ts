@@ -24,6 +24,7 @@ export interface Room {
   isAvailable: boolean;
   status?: 'active' | 'maintenance';
   pricePerHour?: number;
+  nextAvailableTime?: string | null;
 }
 
 export interface Resource {

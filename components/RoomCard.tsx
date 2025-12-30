@@ -58,9 +58,14 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook }) => {
         </div>
 
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 min-h-[57px]">
-          {!room.isAvailable && (
+          {!room.isAvailable && room.nextAvailableTime && (
              <p className="text-sm text-medium italic">
-               Próximo horário livre: 14:00
+               Próximo horário livre: {room.nextAvailableTime}
+             </p>
+          )}
+          {!room.isAvailable && !room.nextAvailableTime && (
+             <p className="text-sm text-medium italic">
+               Indisponível para este horário
              </p>
           )}
           {room.isAvailable && (

@@ -92,18 +92,30 @@ const App: React.FC = () => {
   const handleSearch = async () => {
     setIsLoading(true);
     try {
-      const apiRooms = await api.rooms.getAll();
-      const mappedRooms: Room[] = apiRooms.map(r => ({
-        id: String(r.id),
-        name: r.name,
-        capacity: r.capacity,
-        location: r.location,
-        image: r.image || '',
-        amenities: (r.amenities as Amenity[]) || [],
-        isAvailable: r.isAvailable,
-        status: r.status as 'active' | 'maintenance' | undefined,
-        pricePerHour: r.pricePerHour || undefined,
-      }));
+      const [apiRooms, availability] = await Promise.all([
+        api.rooms.getAll(),
+        api.rooms.checkAvailability(filters.date, filters.startTime, filters.endTime)
+      ]);
+      
+      const availabilityMap = new Map(
+        availability.map(a => [a.roomId, a])
+      );
+      
+      const mappedRooms: Room[] = apiRooms.map(r => {
+        const roomAvailability = availabilityMap.get(r.id);
+        return {
+          id: String(r.id),
+          name: r.name,
+          capacity: r.capacity,
+          location: r.location,
+          image: r.image || '',
+          amenities: (r.amenities as Amenity[]) || [],
+          isAvailable: roomAvailability?.isAvailable ?? r.isAvailable,
+          status: r.status as 'active' | 'maintenance' | undefined,
+          pricePerHour: r.pricePerHour || undefined,
+          nextAvailableTime: roomAvailability?.nextAvailableTime || null,
+        };
+      });
       const filtered = mappedRooms.filter(room => room.capacity >= Number(filters.capacity));
       setAvailableRooms(filtered);
     } catch (error) {
