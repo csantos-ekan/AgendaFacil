@@ -337,13 +337,13 @@ router.get("/reservations/:id", async (req: Request, res: Response) => {
 
 router.post("/reservations", async (req: Request, res: Response) => {
   try {
-    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status } = req.body;
+    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset } = req.body;
     
     if (!roomId || !userId || !date || !startTime || !endTime) {
       return res.status(400).json({ message: "Dados da reserva incompletos" });
     }
 
-    const timeValidation = validateReservationTime(date, startTime, endTime);
+    const timeValidation = validateReservationTime(date, startTime, endTime, clientTimezoneOffset);
     if (!timeValidation.isValid) {
       return res.status(400).json({ message: timeValidation.error });
     }

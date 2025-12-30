@@ -23,32 +23,36 @@ export function getCurrentDateTime(): { date: string; time: string } {
 export function validateReservationTime(
   reservationDate: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  clientTimezoneOffset?: number
 ): ReservationTimeValidation {
-  const { date: currentDate, time: currentTime } = getCurrentDateTime();
+  const [year, month, day] = reservationDate.split('-').map(Number);
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
   
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-  const currentMinutes = timeToMinutes(currentTime);
+  const now = new Date();
   
-  if (reservationDate === currentDate) {
-    if (startMinutes < currentMinutes) {
-      return {
-        isValid: false,
-        error: 'O horário de início não pode ser menor que o horário atual.'
-      };
-    }
+  let clientNow: Date;
+  if (clientTimezoneOffset !== undefined) {
+    const serverOffset = now.getTimezoneOffset();
+    const offsetDiff = (serverOffset - clientTimezoneOffset) * 60 * 1000;
+    clientNow = new Date(now.getTime() + offsetDiff);
+  } else {
+    clientNow = now;
   }
   
-  if (reservationDate < currentDate) {
+  const reservationStart = new Date(year, month - 1, day, startHour, startMin);
+  const reservationEnd = new Date(year, month - 1, day, endHour, endMin);
+  
+  if (reservationStart < clientNow) {
     return {
       isValid: false,
-      error: 'Não é possível fazer reservas para datas passadas.'
+      error: 'O horário de início não pode ser no passado.'
     };
   }
   
-  const minimumDuration = 15;
-  if (endMinutes - startMinutes < minimumDuration) {
+  const minimumDurationMs = 15 * 60 * 1000;
+  if (reservationEnd.getTime() - reservationStart.getTime() < minimumDurationMs) {
     return {
       isValid: false,
       error: 'O horário final deve ser no mínimo 15 minutos após o horário inicial.'

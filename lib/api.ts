@@ -204,10 +204,11 @@ export const api = {
       return handleResponse(response);
     },
     create: async (data: Omit<ApiReservation, "id" | "timestamp">): Promise<ApiReservation> => {
+      const clientTimezoneOffset = new Date().getTimezoneOffset();
       const response = await fetch(`${API_BASE}/reservations`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, clientTimezoneOffset }),
       });
       return handleResponse(response);
     },

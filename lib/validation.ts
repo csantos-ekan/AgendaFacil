@@ -25,30 +25,24 @@ export function validateReservationTime(
   startTime: string,
   endTime: string
 ): ReservationTimeValidation {
-  const { date: currentDate, time: currentTime } = getCurrentDateTime();
+  const now = new Date();
   
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-  const currentMinutes = timeToMinutes(currentTime);
+  const [year, month, day] = reservationDate.split('-').map(Number);
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
   
-  if (reservationDate === currentDate) {
-    if (startMinutes < currentMinutes) {
-      return {
-        isValid: false,
-        error: 'O horário de início não pode ser menor que o horário atual.'
-      };
-    }
-  }
+  const reservationStart = new Date(year, month - 1, day, startHour, startMin);
+  const reservationEnd = new Date(year, month - 1, day, endHour, endMin);
   
-  if (reservationDate < currentDate) {
+  if (reservationStart < now) {
     return {
       isValid: false,
-      error: 'Não é possível fazer reservas para datas passadas.'
+      error: 'O horário de início não pode ser no passado.'
     };
   }
   
-  const minimumDuration = 15;
-  if (endMinutes - startMinutes < minimumDuration) {
+  const minimumDurationMs = 15 * 60 * 1000;
+  if (reservationEnd.getTime() - reservationStart.getTime() < minimumDurationMs) {
     return {
       isValid: false,
       error: 'O horário final deve ser no mínimo 15 minutos após o horário inicial.'
