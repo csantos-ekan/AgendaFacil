@@ -60,7 +60,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs text-medium">
                           <Calendar className="w-3 h-3" />
-                          <span>{new Date(res.date).toLocaleDateString()}</span>
+                          <span>{new Date(res.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                           <span className="mx-1">•</span>
                           <Clock className="w-3 h-3" />
                           <span>{res.startTime} - {res.endTime}</span>
