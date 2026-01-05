@@ -75,7 +75,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <Calendar className="w-4 h-4 text-primary" />
                 <span>Data</span>
               </div>
-              <span className="font-semibold text-dark">{new Date(filters.date).toLocaleDateString()}</span>
+              <span className="font-semibold text-dark">{new Date(filters.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
             </div>
             
             <div className="flex justify-between items-center text-sm">
