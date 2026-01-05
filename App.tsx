@@ -37,6 +37,12 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    if (currentUser && activeTab === 'search') {
+      loadRooms();
+    }
+  }, [activeTab]);
+
   const loadRooms = async () => {
     try {
       const apiRooms = await api.rooms.getAll();
