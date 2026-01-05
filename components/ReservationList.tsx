@@ -42,7 +42,7 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
              </div>
              <div className="flex items-center gap-3 text-sm text-medium">
                <Calendar className="w-4 h-4" />
-               <span>{new Date(res.date).toLocaleDateString()}</span>
+               <span>{new Date(res.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
              </div>
              <div className="flex items-center gap-3 text-sm text-medium">
                <Clock className="w-4 h-4" />
