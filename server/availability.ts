@@ -42,42 +42,18 @@ export async function checkRoomAvailability(
     if (requestedStart < resEnd && requestedEnd > resStart) {
       hasConflict = true;
       
-      const now = new Date();
-      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const currentMinutes = timeToMinutes(currentTimeStr);
+      let candidateTime = resEnd;
       
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      
-      if (date === todayStr) {
-        let candidateTime = resEnd;
+      for (const futureRes of roomReservations) {
+        const futureStart = timeToMinutes(futureRes.startTime);
+        const futureEnd = timeToMinutes(futureRes.endTime);
         
-        for (const futureRes of roomReservations) {
-          const futureStart = timeToMinutes(futureRes.startTime);
-          const futureEnd = timeToMinutes(futureRes.endTime);
-          
-          if (futureStart <= candidateTime && futureEnd > candidateTime) {
-            candidateTime = futureEnd;
-          }
+        if (futureStart <= candidateTime && futureEnd > candidateTime) {
+          candidateTime = futureEnd;
         }
-        
-        if (candidateTime >= currentMinutes) {
-          nextAvailableTime = minutesToTime(candidateTime);
-        }
-      } else {
-        let candidateTime = resEnd;
-        
-        for (const futureRes of roomReservations) {
-          const futureStart = timeToMinutes(futureRes.startTime);
-          const futureEnd = timeToMinutes(futureRes.endTime);
-          
-          if (futureStart <= candidateTime && futureEnd > candidateTime) {
-            candidateTime = futureEnd;
-          }
-        }
-        
-        nextAvailableTime = minutesToTime(candidateTime);
       }
       
+      nextAvailableTime = minutesToTime(candidateTime);
       break;
     }
   }
