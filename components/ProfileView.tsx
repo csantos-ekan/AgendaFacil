@@ -1,14 +1,53 @@
-import React from 'react';
-import { User as UserIcon, Shield, Key, Mail, CheckCircle2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { User as UserIcon, Shield, Key, Mail, Camera } from 'lucide-react';
 import { User } from '../types';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { api } from '../lib/api';
 
 interface ProfileViewProps {
   user: User;
+  onUserUpdate?: (user: User) => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState(user.avatar);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const updatedUser = await api.users.uploadAvatar(parseInt(user.id), file);
+      setCurrentAvatar(updatedUser.avatar || null);
+      if (onUserUpdate) {
+        onUserUpdate({ ...user, avatar: updatedUser.avatar || null });
+      }
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      alert('Erro ao atualizar foto de perfil. Tente novamente.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in max-w-5xl mx-auto py-8">
       <div className="mb-8">
@@ -21,13 +60,31 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
         {/* Profile Sidebar Card */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center flex flex-col items-center">
           <div className="relative mb-6">
-            <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={handleAvatarClick}
+              disabled={isUploading}
+              className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-lg overflow-hidden cursor-pointer group relative transition-all hover:shadow-xl"
+            >
+              {currentAvatar ? (
+                <img src={currentAvatar} alt={user.name} className="w-full h-full object-cover" />
               ) : (
                 <UserIcon className="w-16 h-16 text-gray-300" />
               )}
-            </div>
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {isUploading ? (
+                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Camera className="w-8 h-8 text-white" />
+                )}
+              </div>
+            </button>
             <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm"></div>
           </div>
 

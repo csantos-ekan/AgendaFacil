@@ -257,7 +257,7 @@ const App: React.FC = () => {
 
           {/* VIEW: My Profile */}
           {activeTab === 'profile' && (
-            <ProfileView user={currentUser} />
+            <ProfileView user={currentUser} onUserUpdate={setCurrentUser} />
           )}
 
           {/* VIEW: Users Management (Admin Only) */}

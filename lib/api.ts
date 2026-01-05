@@ -121,6 +121,26 @@ export const api = {
       const response = await fetch(`${API_BASE}/users/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       return handleResponse(response);
     },
+    uploadAvatar: async (id: number, file: File): Promise<ApiUser> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result as string;
+            const response = await fetch(`${API_BASE}/users/${id}/avatar`, {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ avatar: base64 }),
+            });
+            resolve(await handleResponse(response));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsDataURL(file);
+      });
+    },
   },
 
   rooms: {

@@ -132,6 +132,28 @@ router.delete("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
+router.post("/users/:id/avatar", async (req: Request, res: Response) => {
+  try {
+    const { avatar } = req.body;
+    
+    if (!avatar) {
+      return res.status(400).json({ message: "Imagem não fornecida" });
+    }
+
+    const updatedUser = await storage.updateUser(parseInt(req.params.id), { avatar });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    return res.json(userWithoutPassword);
+  } catch (error) {
+    console.error("Upload avatar error:", error);
+    return res.status(500).json({ message: "Erro ao atualizar foto de perfil" });
+  }
+});
+
 router.get("/rooms", async (_req: Request, res: Response) => {
   try {
     const rooms = await storage.getAllRooms();

@@ -93,6 +93,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-05
+- Upload de foto de perfil implementado
+  - Usuário pode clicar na foto no "Meu Perfil" para fazer upload
+  - Suporte a imagens até 5MB
+  - Novo endpoint POST /api/users/:id/avatar
+
 ### 2025-12-30
 - Implementação de lógica de disponibilidade das salas
   - Verificação de conflitos com reservas existentes
