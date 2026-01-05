@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, CheckCircle2, Trash2, Pencil } from 'lucide-react';
+import { Plus, MapPin, CheckCircle2, Trash2, Pencil, XCircle } from 'lucide-react';
 import { Room, Amenity } from '../types';
 import { api } from '../lib/api';
 import { Button } from './ui/button';
@@ -14,6 +14,7 @@ export const RoomsManagementView: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+  const [showErrorToast, setShowErrorToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +48,11 @@ export const RoomsManagementView: React.FC = () => {
     setTimeout(() => setShowToast({ show: false, msg: '' }), 3000);
   };
 
+  const triggerErrorToast = (msg: string) => {
+    setShowErrorToast({ show: true, msg });
+    setTimeout(() => setShowErrorToast({ show: false, msg: '' }), 3000);
+  };
+
   const handleOpenModal = () => {
     setEditingRoom(null);
     setIsModalOpen(true);
@@ -72,6 +78,9 @@ export const RoomsManagementView: React.FC = () => {
         loadRooms();
       } catch (error) {
         console.error('Error deleting room:', error);
+        setIsDeleteModalOpen(false);
+        setSelectedRoom(null);
+        triggerErrorToast('Erro ao excluir sala. Tente novamente.');
       }
     }
   };
@@ -198,6 +207,15 @@ export const RoomsManagementView: React.FC = () => {
             <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
           <h4 className="font-semibold text-sm text-dark">{showToast.msg}</h4>
+        </div>
+      )}
+
+      {showErrorToast.show && (
+        <div className="fixed bottom-8 right-8 bg-white border-l-4 border-red-500 p-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up z-50">
+          <div className="bg-red-100 p-1 rounded-full">
+            <XCircle className="w-5 h-5 text-red-500" />
+          </div>
+          <h4 className="font-semibold text-sm text-dark">{showErrorToast.msg}</h4>
         </div>
       )}
     </div>

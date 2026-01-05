@@ -76,6 +76,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRoom(id: number): Promise<boolean> {
+    await db.delete(reservations).where(eq(reservations.roomId, id));
     const result = await db.delete(rooms).where(eq(rooms.id, id)).returning();
     return result.length > 0;
   }
