@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
-import { AMENITIES } from '../constants';
+import { Room, Amenity } from '../types';
+import { api } from '../lib/api';
 
 interface NewRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (roomData: any) => void;
+  editRoom?: Room | null;
 }
 
-export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onSave }) => {
+export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onSave, editRoom }) => {
   const [formData, setFormData] = useState({
     name: '',
     capacity: '',
@@ -17,14 +19,32 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
     selectedAmenities: [] as string[]
   });
 
-  const amenitiesOptions = [
-    { id: 'PROJECTOR', label: 'Projetor' },
-    { id: 'AC', label: 'Ar Condicionado' },
-    { id: 'TV', label: 'TV 4K' },
-    { id: 'WIFI', label: 'Wi-Fi Dedicado' },
-    { id: 'BOARD', label: 'Quadro Branco' },
-    { id: 'VIDEO', label: 'Vídeo Conf.' },
-  ];
+  const [resourcesFromDB, setResourcesFromDB] = useState<{id: string, name: string}[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadResources();
+      if (editRoom) {
+        setFormData({
+          name: editRoom.name,
+          capacity: String(editRoom.capacity),
+          location: editRoom.location,
+          selectedAmenities: editRoom.amenities.map(a => a.name)
+        });
+      } else {
+        setFormData({ name: '', capacity: '', location: '', selectedAmenities: [] });
+      }
+    }
+  }, [isOpen, editRoom]);
+
+  const loadResources = async () => {
+    try {
+      const resources = await api.resources.getAll();
+      setResourcesFromDB(resources.map(r => ({ id: String(r.id), name: r.name })));
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -43,10 +63,11 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
+      id: editRoom?.id,
       name: formData.name,
       capacity: formData.capacity,
       location: formData.location,
-      amenities: formData.selectedAmenities.map(id => AMENITIES[id])
+      amenities: formData.selectedAmenities.map(name => ({ name, icon: 'default' }))
     });
     setFormData({ name: '', capacity: '', location: '', selectedAmenities: [] });
     onClose();
@@ -60,7 +81,7 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
         <div className="pt-8 px-8 pb-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-bold text-[#1E293B]">Nova Sala</h2>
+              <h2 className="text-xl font-bold text-[#1E293B]">{editRoom ? 'Editar Sala' : 'Nova Sala'}</h2>
               <p className="text-sm text-[#64748B] mt-1">Configure os detalhes e recursos do espaço.</p>
             </div>
             <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
@@ -108,26 +129,30 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
 
           <div>
             <label className="block text-sm font-semibold text-[#1E293B] mb-3">Recursos</label>
-            <div className="grid grid-cols-2 gap-y-4">
-              {amenitiesOptions.map(option => (
-                <label key={option.id} className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center">
-                    <input
-                      type="checkbox"
-                      className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-gray-300 transition-all checked:bg-primary checked:border-primary"
-                      checked={formData.selectedAmenities.includes(option.id)}
-                      onChange={() => handleToggleAmenity(option.id)}
-                    />
-                    <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </span>
-                  </div>
-                  <span className="text-sm text-[#475569] group-hover:text-dark transition-colors">{option.label}</span>
-                </label>
-              ))}
-            </div>
+            {resourcesFromDB.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">Nenhum recurso cadastrado. Cadastre recursos na aba "Gestão de Recursos".</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-y-4">
+                {resourcesFromDB.map(resource => (
+                  <label key={resource.id} className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-gray-300 transition-all checked:bg-primary checked:border-primary"
+                        checked={formData.selectedAmenities.includes(resource.name)}
+                        onChange={() => handleToggleAmenity(resource.name)}
+                      />
+                      <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    </div>
+                    <span className="text-sm text-[#475569] group-hover:text-dark transition-colors">{resource.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

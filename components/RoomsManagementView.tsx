@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, CheckCircle2, Trash2 } from 'lucide-react';
+import { Plus, MapPin, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { Room, Amenity } from '../types';
 import { api } from '../lib/api';
 import { Button } from './ui/button';
@@ -12,6 +12,7 @@ export const RoomsManagementView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +47,15 @@ export const RoomsManagementView: React.FC = () => {
     setTimeout(() => setShowToast({ show: false, msg: '' }), 3000);
   };
 
-  const handleOpenModal = () => setIsModalOpen(true);
+  const handleOpenModal = () => {
+    setEditingRoom(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (room: Room) => {
+    setEditingRoom(room);
+    setIsModalOpen(true);
+  };
   
   const handleOpenDelete = (room: Room) => {
     setSelectedRoom(room);
@@ -69,17 +78,28 @@ export const RoomsManagementView: React.FC = () => {
 
   const handleSaveRoom = async (roomData: any) => {
     try {
-      await api.rooms.create({
-        name: roomData.name,
-        location: roomData.location,
-        capacity: Number(roomData.capacity),
-        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
-        amenities: roomData.amenities,
-        isAvailable: true,
-        status: 'active'
-      });
+      if (roomData.id) {
+        await api.rooms.update(parseInt(roomData.id), {
+          name: roomData.name,
+          location: roomData.location,
+          capacity: Number(roomData.capacity),
+          amenities: roomData.amenities
+        });
+        triggerToast('Sala atualizada com sucesso!');
+      } else {
+        await api.rooms.create({
+          name: roomData.name,
+          location: roomData.location,
+          capacity: Number(roomData.capacity),
+          image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
+          amenities: roomData.amenities,
+          isAvailable: true,
+          status: 'active'
+        });
+        triggerToast('Sala cadastrada com sucesso!');
+      }
       setIsModalOpen(false);
-      triggerToast('Sala cadastrada com sucesso!');
+      setEditingRoom(null);
       loadRooms();
     } catch (error) {
       console.error('Error saving room:', error);
@@ -105,14 +125,23 @@ export const RoomsManagementView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms.map((room) => (
           <div key={room.id} className="relative group bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col hover:shadow-md transition-all">
-            {/* Delete Button */}
-            <button 
-              onClick={() => handleOpenDelete(room)}
-              className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-              title="Excluir Sala"
-            >
-              <Trash2 className="w-4.5 h-4.5" />
-            </button>
+            {/* Action Buttons */}
+            <div className="absolute top-4 right-4 flex gap-1">
+              <button 
+                onClick={() => handleOpenEdit(room)}
+                className="p-2 text-gray-300 hover:text-primary hover:bg-blue-50 rounded-lg transition-all"
+                title="Editar Sala"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => handleOpenDelete(room)}
+                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Excluir Sala"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
 
             <h3 className="text-xl font-bold text-dark mb-1 pr-8">{room.name}</h3>
             
@@ -151,8 +180,9 @@ export const RoomsManagementView: React.FC = () => {
 
       <NewRoomModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSaveRoom} 
+        onClose={() => { setIsModalOpen(false); setEditingRoom(null); }} 
+        onSave={handleSaveRoom}
+        editRoom={editingRoom}
       />
 
       <DeleteRoomConfirmationModal
