@@ -59,6 +59,8 @@ router.get("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
+const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiNmMWY1ZjkiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PHBhdGggZD0iTTcgMjAuNjYyVjE5YTQgNCAwIDAgMSA0LTRoMmE0IDQgMCAwIDEgNCA0djEuNjYyIi8+PC9zdmc+";
+
 router.post("/users", async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
@@ -81,7 +83,7 @@ router.post("/users", async (req: Request, res: Response) => {
       role: role || "colaborador",
       status: status || "ativo",
       cpf,
-      avatar,
+      avatar: avatar || DEFAULT_AVATAR,
     });
 
     const { password: _, ...userWithoutPassword } = newUser;
