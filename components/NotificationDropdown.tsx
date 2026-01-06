@@ -15,9 +15,14 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Filtra confirmadas e ordena por data/hora mais próxima
+  // Filtra confirmadas E futuras, ordena por data/hora mais próxima
+  const now = new Date();
   const upcomingReservations = reservations
-    .filter(r => r.status === 'confirmed')
+    .filter(r => {
+      if (r.status !== 'confirmed') return false;
+      const reservationEnd = new Date(`${r.date}T${r.endTime}`);
+      return reservationEnd > now;
+    })
     .sort((a, b) => {
       const dateA = new Date(`${a.date}T${a.startTime}`);
       const dateB = new Date(`${b.date}T${b.startTime}`);
