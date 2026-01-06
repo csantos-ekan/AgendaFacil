@@ -118,9 +118,40 @@ export const MOCK_RESERVATIONS: Reservation[] = [
   }
 ];
 
-export const INITIAL_FILTERS = {
-  date: new Date().toISOString().split('T')[0],
-  startTime: '09:00',
-  endTime: '10:00',
-  capacity: 1,
+const getNextQuarterHour = (): { startTime: string, endTime: string } => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const roundedMinutes = Math.ceil((minutes + 1) / 15) * 15;
+  
+  const startDate = new Date(now);
+  if (roundedMinutes >= 60) {
+    startDate.setHours(startDate.getHours() + 1);
+    startDate.setMinutes(roundedMinutes - 60);
+  } else {
+    startDate.setMinutes(roundedMinutes);
+  }
+  startDate.setSeconds(0);
+  
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 1);
+  
+  const formatTime = (d: Date) => 
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  
+  return {
+    startTime: formatTime(startDate),
+    endTime: formatTime(endDate)
+  };
 };
+
+export const getInitialFilters = () => {
+  const { startTime, endTime } = getNextQuarterHour();
+  return {
+    date: new Date().toISOString().split('T')[0],
+    startTime,
+    endTime,
+    capacity: 1,
+  };
+};
+
+export const INITIAL_FILTERS = getInitialFilters();
