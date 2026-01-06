@@ -26,9 +26,25 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterC
     return filters.date === todayStr;
   };
 
-  // Helper: Retorna hora atual formatada "HH:mm"
-  const getCurrentTime = () => {
+  // Helper: Retorna o próximo intervalo de 15 minutos formatado "HH:mm"
+  const getNextQuarterHour = () => {
     const now = new Date();
+    const minutes = now.getMinutes();
+    const remainder = minutes % 15;
+    
+    if (remainder === 0) {
+      // Já está no intervalo, avança para o próximo
+      now.setMinutes(minutes + 15);
+    } else {
+      // Arredonda para o próximo intervalo de 15 minutos
+      now.setMinutes(minutes + (15 - remainder));
+    }
+    
+    // Trata virada de hora/dia
+    if (now.getHours() >= 24) {
+      now.setHours(23, 45);
+    }
+    
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
@@ -44,7 +60,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterC
   // Calcula o minTime para o Inicio
   const getMinStartTime = () => {
     if (isToday()) {
-      return getCurrentTime();
+      return getNextQuarterHour();
     }
     return undefined; // Sem restrição se for data futura
   };
