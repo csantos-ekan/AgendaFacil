@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { User as UserIcon, Shield, Key, Mail, Camera } from 'lucide-react';
+import { User as UserIcon, Shield, Key, Mail, Camera, CheckCircle2, XCircle } from 'lucide-react';
 import { User } from '../types';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -22,6 +22,43 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState(user.avatar);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({show: false, msg: '', type: 'success'});
+
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToast({show: true, msg, type});
+    setTimeout(() => setToast({show: false, msg: '', type: 'success'}), 3000);
+  };
+
+  const handleSavePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      showToast('Preencha os campos de senha.', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('As senhas não conferem.', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast('A senha deve ter pelo menos 6 caracteres.', 'error');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await api.users.update(parseInt(user.id), { password: newPassword });
+      showToast('Senha atualizada com sucesso!', 'success');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Erro ao atualizar senha:', error);
+      showToast('Erro ao atualizar senha. Tente novamente.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -164,6 +201,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
                   <input 
                     type="password" 
                     placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-dark focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
@@ -172,6 +211,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
                   <input 
                     type="password" 
                     placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-dark focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
@@ -179,14 +220,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
             </div>
 
             <div className="flex justify-end pt-4">
-              <Button size="lg" className="px-10 font-bold shadow-lg shadow-primary/20">
-                Salvar Alterações
+              <Button 
+                size="lg" 
+                className="px-10 font-bold shadow-lg shadow-primary/20"
+                onClick={handleSavePassword}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
             </div>
           </div>
         </div>
 
       </div>
+
+      {toast.show && (
+        <div className={`fixed bottom-8 right-8 bg-white border-l-4 ${toast.type === 'success' ? 'border-success' : 'border-red-500'} p-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up z-50`}>
+          <div className={`${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'} p-1 rounded-full`}>
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-500" />
+            )}
+          </div>
+          <h4 className="font-semibold text-sm text-dark">{toast.msg}</h4>
+        </div>
+      )}
     </div>
   );
 };
