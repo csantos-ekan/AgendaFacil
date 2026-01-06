@@ -7,9 +7,13 @@ import { Button } from './ui/button';
 interface RoomCardProps {
   room: Room;
   onBook: (room: Room) => void;
+  availableResourceNames?: string[];
 }
 
-export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook }) => {
+export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook, availableResourceNames = [] }) => {
+  const filteredAmenities = availableResourceNames.length > 0
+    ? room.amenities.filter(a => availableResourceNames.includes(a.name))
+    : room.amenities;
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row mb-6 hover:shadow-lg transition-all duration-300 group">
       
@@ -44,7 +48,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook }) => {
           <div className="my-4">
             <h4 className="text-xs font-semibold text-medium uppercase tracking-wider mb-3">Recursos</h4>
             <div className="flex flex-wrap gap-2">
-              {room.amenities.map((amenity) => (
+              {filteredAmenities.map((amenity) => (
                 <div 
                   key={amenity.id} 
                   className="text-sm text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-md"

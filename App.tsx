@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [filters, setFilters] = useState<FilterType>(INITIAL_FILTERS);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [availableResourceNames, setAvailableResourceNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -34,8 +35,19 @@ const App: React.FC = () => {
     if (currentUser) {
       loadRooms();
       loadReservations();
+      loadAvailableResources();
     }
   }, [currentUser]);
+
+  const loadAvailableResources = async () => {
+    try {
+      const resources = await api.resources.getAll();
+      const available = resources.filter(r => r.status === 'Disponível').map(r => r.name);
+      setAvailableResourceNames(available);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    }
+  };
 
   useEffect(() => {
     if (currentUser && activeTab === 'search') {
@@ -240,7 +252,8 @@ const App: React.FC = () => {
                   <RoomCard 
                     key={room.id} 
                     room={room} 
-                    onBook={handleOpenBooking} 
+                    onBook={handleOpenBooking}
+                    availableResourceNames={availableResourceNames}
                   />
                 ))}
               </div>
