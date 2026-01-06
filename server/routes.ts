@@ -157,7 +157,19 @@ router.post("/users/:id/avatar", async (req: Request, res: Response) => {
 router.get("/rooms", async (_req: Request, res: Response) => {
   try {
     const rooms = await storage.getAllRooms();
-    return res.json(rooms);
+    const allResources = await storage.getAllResources();
+    const availableResourceNames = allResources
+      .filter(r => r.status === 'Disponível')
+      .map(r => r.name);
+    
+    const roomsWithFilteredAmenities = rooms.map(room => ({
+      ...room,
+      amenities: (room.amenities as any[]).filter(
+        amenity => availableResourceNames.includes(amenity.name)
+      )
+    }));
+    
+    return res.json(roomsWithFilteredAmenities);
   } catch (error) {
     console.error("Get rooms error:", error);
     return res.status(500).json({ message: "Erro ao buscar salas" });

@@ -47,7 +47,8 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
   const loadResources = async () => {
     try {
       const resources = await api.resources.getAll();
-      setResourcesFromDB(resources.map(r => ({ id: String(r.id), name: r.name })));
+      const availableResources = resources.filter(r => r.status === 'Disponível');
+      setResourcesFromDB(availableResources.map(r => ({ id: String(r.id), name: r.name })));
     } catch (error) {
       console.error('Error loading resources:', error);
     }
