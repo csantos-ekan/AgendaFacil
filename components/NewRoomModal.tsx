@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import { Room, Amenity } from '../types';
 import { api } from '../lib/api';
@@ -20,6 +20,9 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
   });
 
   const [resourcesFromDB, setResourcesFromDB] = useState<{id: string, name: string}[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -31,8 +34,12 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
           location: editRoom.location,
           selectedAmenities: editRoom.amenities.map(a => a.name)
         });
+        setImagePreview(editRoom.image || null);
+        setImageBase64(null);
       } else {
         setFormData({ name: '', capacity: '', location: '', selectedAmenities: [] });
+        setImagePreview(null);
+        setImageBase64(null);
       }
     }
   }, [isOpen, editRoom]);
@@ -60,16 +67,44 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
     });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setImageBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+    const roomData: any = {
       id: editRoom?.id,
       name: formData.name,
       capacity: formData.capacity,
       location: formData.location,
       amenities: formData.selectedAmenities.map(name => ({ name, icon: 'default' }))
-    });
+    };
+    
+    if (imageBase64) {
+      roomData.image = imageBase64;
+    } else if (editRoom && imagePreview) {
+      roomData.image = imagePreview;
+    }
+    
+    onSave(roomData);
     setFormData({ name: '', capacity: '', location: '', selectedAmenities: [] });
+    setImagePreview(null);
+    setImageBase64(null);
     onClose();
   };
 
@@ -153,6 +188,40 @@ export const NewRoomModal: React.FC<NewRoomModalProps> = ({ isOpen, onClose, onS
                 ))}
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-[#1E293B] mb-2">Imagem da Sala</label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-primary/50 transition-colors"
+            >
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">Clique para alterar</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-4 text-gray-400">
+                  <ImageIcon className="w-10 h-10 mb-2" />
+                  <span className="text-sm">Clique para adicionar uma imagem</span>
+                  <span className="text-xs mt-1">Máximo 5MB</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
