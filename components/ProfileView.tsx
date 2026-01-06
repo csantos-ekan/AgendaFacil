@@ -137,7 +137,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed"
                 />
                 <p className="text-[11px] text-medium mt-2 italic">
-                  * Para alterar seu CPF ou Nome, entre em contato com o RH.
+                  * Para alterar seu CPF ou Nome, entre em contato com o Administrador.
                 </p>
               </div>
             </div>
