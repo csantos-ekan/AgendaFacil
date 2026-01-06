@@ -7,6 +7,14 @@ import { Badge } from './ui/badge';
 import { NewUserModal } from './NewUserModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
+const formatCPF = (value: string): string => {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+};
+
 export const UsersManagementView: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -146,7 +154,7 @@ export const UsersManagementView: React.FC = () => {
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-medium">{user.cpf}</span>
+                    <span className="text-sm text-medium">{user.cpf ? formatCPF(user.cpf) : ''}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <Badge 

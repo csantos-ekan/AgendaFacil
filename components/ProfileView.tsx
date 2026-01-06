@@ -5,6 +5,14 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { api } from '../lib/api';
 
+const formatCPF = (value: string): string => {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+};
+
 interface ProfileViewProps {
   user: User;
   onUserUpdate?: (user: User) => void;
@@ -124,7 +132,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUserUpdate }) 
                 <label className="block text-sm font-semibold text-dark mb-2">CPF</label>
                 <input 
                   type="text" 
-                  defaultValue={user.cpf || '123.456.789-00'} 
+                  defaultValue={user.cpf ? formatCPF(user.cpf) : ''} 
                   disabled
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed"
                 />

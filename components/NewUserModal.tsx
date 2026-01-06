@@ -3,6 +3,14 @@ import { X } from 'lucide-react';
 import { Button } from './ui/button';
 import { User } from '../types';
 
+const formatCPF = (value: string): string => {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+};
+
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -108,8 +116,8 @@ export const NewUserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave
                 type="text"
                 required
                 placeholder="000.000.000-00"
-                value={formData.cpf}
-                onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                value={formatCPF(formData.cpf)}
+                onChange={(e) => setFormData({...formData, cpf: e.target.value.replace(/\D/g, '').slice(0, 11)})}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-dark bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-400 shadow-sm"
               />
             </div>
