@@ -9,7 +9,6 @@ import { DeleteRoomConfirmationModal } from './DeleteRoomConfirmationModal';
 
 export const RoomsManagementView: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [availableResourceNames, setAvailableResourceNames] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -20,18 +19,7 @@ export const RoomsManagementView: React.FC = () => {
 
   useEffect(() => {
     loadRooms();
-    loadAvailableResources();
   }, []);
-
-  const loadAvailableResources = async () => {
-    try {
-      const resources = await api.resources.getAll();
-      const available = resources.filter(r => r.status === 'Disponível').map(r => r.name);
-      setAvailableResourceNames(available);
-    } catch (error) {
-      console.error('Error loading resources:', error);
-    }
-  };
 
   const loadRooms = async () => {
     try {
@@ -185,16 +173,14 @@ export const RoomsManagementView: React.FC = () => {
             <div className="mt-auto">
               <p className="text-xs font-medium text-gray-400 mb-3">Recursos Disponíveis:</p>
               <div className="flex flex-wrap gap-2">
-                {room.amenities
-                  .filter(amenity => availableResourceNames.includes(amenity.name))
-                  .map((amenity, idx) => (
-                    <div 
-                      key={`${room.id}-${idx}`}
-                      className="bg-gray-50 border border-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 shadow-sm"
-                    >
-                      {amenity.name}
-                    </div>
-                  ))}
+                {room.amenities.map((amenity, idx) => (
+                  <div 
+                    key={`${room.id}-${idx}`}
+                    className="bg-gray-50 border border-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 shadow-sm"
+                  >
+                    {amenity.name}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
