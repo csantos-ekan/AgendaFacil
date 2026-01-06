@@ -88,19 +88,23 @@ export const RoomsManagementView: React.FC = () => {
   const handleSaveRoom = async (roomData: any) => {
     try {
       if (roomData.id) {
-        await api.rooms.update(parseInt(roomData.id), {
+        const updateData: any = {
           name: roomData.name,
           location: roomData.location,
           capacity: Number(roomData.capacity),
           amenities: roomData.amenities
-        });
+        };
+        if (roomData.image) {
+          updateData.image = roomData.image;
+        }
+        await api.rooms.update(parseInt(roomData.id), updateData);
         triggerToast('Sala atualizada com sucesso!');
       } else {
         await api.rooms.create({
           name: roomData.name,
           location: roomData.location,
           capacity: Number(roomData.capacity),
-          image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
+          image: roomData.image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
           amenities: roomData.amenities,
           isAvailable: true,
           status: 'active'
