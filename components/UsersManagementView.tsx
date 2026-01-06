@@ -67,8 +67,7 @@ export const UsersManagementView: React.FC = () => {
       } else {
         await api.users.create({
           ...userData,
-          password: userData.password || 'senha123',
-          avatar: `https://i.pravatar.cc/150?u=${Math.random()}`
+          password: userData.password || 'senha123'
         });
         triggerToast('Novo usuário cadastrado!');
       }
