@@ -52,6 +52,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (currentUser && activeTab === 'search') {
       loadRooms();
+      loadAvailableResources();
     }
   }, [activeTab]);
 
