@@ -1,0 +1,75 @@
+Após a criação de uma reserva, o sistema deve 
+1) Enviar e-mails de convite para os participantes informados pelo usuário (se houver).
+2) Criar um evento no Google Calendar (de todos os participantes)
+
+Objetivo:
+Implementar:
+- Envio de e-mails via SMTP do Google Workspace
+- Integração com a API do Google Calendar para criação de eventos
+
+Requisitos técnicos (E-mail):
+- Utilizar SMTP do Google Workspace
+- Autenticação via credenciais armazenadas em variáveis de ambiente
+- NÃO expor credenciais no front-end
+- Criar um serviço de envio de e-mail reutilizável
+
+Requisitos técnicos (Google Calendar):
+- Utilizar a API oficial do Google Calendar
+- Autenticação via OAuth 2.0
+- Criar eventos no calendário do organizador da reunião
+- Adicionar os participantes como convidados do evento
+
+Origem dos e-mails:
+- O sistema deve enviar os e-mails a partir de uma conta institucional
+
+Campo "Convidar Participantes":
+- O usuário informa os e-mails dos convidados em um único campo de texto
+- Os e-mails são separados por vírgula
+- O backend deve:
+  - Separar os e-mails
+  - Remover espaços extras
+  - Validar formato básico de e-mail
+  - Utilizar esses e-mails tanto para:
+    - Envio do convite por e-mail
+    - Inclusão como participantes no Google Calendar
+
+Conteúdo obrigatório do e-mail:
+- Assunto:
+  "Convite para reunião – {Nome da Sala}"
+
+- Corpo do e-mail deve conter claramente:
+  - Nome do usuário que enviou o convite (organizador)
+  - Nome da Sala
+  - Endereço / Localização
+  - Data da reunião
+  - Horário inicial e horário final
+
+Evento no Google Calendar:
+- Título do evento:
+  "Reunião – {Nome da Sala}"
+- Descrição do evento deve conter:
+  - Nome da Sala
+  - Endereço / Localização
+  - Nome do organizador
+- Data e horário conforme a reserva
+- Adicionar os e-mails dos convidados como participantes
+- Permitir que o Google Calendar envie notificações automáticas aos convidados
+
+Comportamento esperado:
+- A reserva deve ser criada primeiro no banco de dados
+- O envio de e-mail e a criação do evento devem ocorrer após a reserva
+- Falhas no envio de e-mail NÃO devem cancelar a reserva
+- Falhas na criação do evento no Google Calendar NÃO devem cancelar a reserva
+- Registrar erros em log para monitoramento
+
+Escopo:
+- Implementar apenas backend
+- Não alterar layout do front-end
+- Não implementar aceite ou recusa manual no sistema
+- Não implementar sincronização bidirecional com o Google Calendar
+
+Resultado esperado:
+- E-mails enviados corretamente via SMTP do Google Workspace
+- Evento criado corretamente no Google Calendar
+- Participantes recebem convite por e-mail e pelo Google Calendar
+- Código organizado, seguro e fácil de manter

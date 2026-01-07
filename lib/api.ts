@@ -224,7 +224,7 @@ export const api = {
       const response = await fetch(`${API_BASE}/reservations/${id}`, { headers: getAuthHeaders() });
       return handleResponse(response);
     },
-    create: async (data: Omit<ApiReservation, "id" | "timestamp">): Promise<ApiReservation> => {
+    create: async (data: Omit<ApiReservation, "id" | "timestamp"> & { participantEmails?: string }): Promise<ApiReservation> => {
       const clientTimezoneOffset = new Date().getTimezoneOffset();
       const response = await fetch(`${API_BASE}/reservations`, {
         method: "POST",

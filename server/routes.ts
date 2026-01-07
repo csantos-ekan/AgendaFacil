@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
+import { sendReservationEmail, parseParticipantEmails } from "./services/email";
+import { createCalendarEvent } from "./services/calendar";
 
 export const router = Router();
 
@@ -373,7 +375,7 @@ router.get("/reservations/:id", async (req: Request, res: Response) => {
 
 router.post("/reservations", async (req: Request, res: Response) => {
   try {
-    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset } = req.body;
+    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset, participantEmails } = req.body;
     
     if (!roomId || !userId || !date || !startTime || !endTime) {
       return res.status(400).json({ message: "Dados da reserva incompletos" });
@@ -410,6 +412,36 @@ router.post("/reservations", async (req: Request, res: Response) => {
       endTime,
       status: status || "confirmed",
     });
+
+    const organizer = await storage.getUser(userId);
+    const organizerName = organizer?.name || 'Usuário';
+    const organizerEmail = organizer?.email || '';
+    const participants = parseParticipantEmails(participantEmails || '');
+
+    if (participants.length > 0) {
+      setImmediate(() => {
+        sendReservationEmail({
+          organizerName,
+          roomName: roomName || '',
+          roomLocation: roomLocation || '',
+          date,
+          startTime,
+          endTime,
+          participants
+        }).catch(err => console.error('Error sending reservation email:', err));
+
+        createCalendarEvent({
+          organizerName,
+          organizerEmail,
+          roomName: roomName || '',
+          roomLocation: roomLocation || '',
+          date,
+          startTime,
+          endTime,
+          participants
+        }).catch(err => console.error('Error creating calendar event:', err));
+      });
+    }
 
     return res.status(201).json(newReservation);
   } catch (error) {

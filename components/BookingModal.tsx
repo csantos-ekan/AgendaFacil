@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (participantEmails: string) => void;
   room: Room | null;
   filters: SearchFilters;
 }
@@ -112,7 +112,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3 justify-end">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onConfirm}>Confirmar Reserva</Button>
+          <Button onClick={() => onConfirm(inviteEmails)}>Confirmar Reserva</Button>
         </div>
       </div>
     </div>
