@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
 import { sendReservationEmail, parseParticipantEmails } from "./services/email";
-import { createCalendarEvent } from "./services/calendar";
+import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
 
 export const router = Router();
 
@@ -506,5 +506,21 @@ router.delete("/reservations/:id", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Delete reservation error:", error);
     return res.status(500).json({ message: "Erro ao excluir reserva" });
+  }
+});
+
+router.get("/test/calendar", async (_req: Request, res: Response) => {
+  console.log('[API] Testing Google Calendar connection...');
+  try {
+    const result = await testCalendarConnection();
+    console.log('[API] Calendar test result:', JSON.stringify(result, null, 2));
+    return res.json(result);
+  } catch (error: any) {
+    console.error('[API] Calendar test error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno ao testar conexão',
+      error: error.message 
+    });
   }
 });
