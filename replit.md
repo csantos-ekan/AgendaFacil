@@ -93,6 +93,20 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-07
+- Integração de e-mail e Google Calendar nas reservas
+  - Envio de e-mail de convite para participantes via SMTP Google Workspace
+  - Criação automática de evento no Google Calendar com participantes
+  - Campo "Convidar Participantes" no modal de reserva (e-mails separados por vírgula)
+  - Serviços reutilizáveis: server/services/email.ts e server/services/calendar.ts
+  - Operações são fire-and-forget (não bloqueiam a resposta da API)
+- Exibição do nome do usuário que reservou a sala quando ocupada
+  - "Reservado por {nome}" aparece abaixo do próximo horário livre
+- Correção do seletor de horário para impedir seleção de horários passados
+  - Usa próximo intervalo de 15 minutos como mínimo quando data é hoje
+- Correção do upload de imagem na criação de salas
+  - Imagem enviada pelo usuário agora é salva corretamente
+
 ### 2026-01-05
 - Upload de foto de perfil implementado
   - Usuário pode clicar na foto no "Meu Perfil" para fazer upload
