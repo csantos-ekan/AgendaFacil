@@ -78,6 +78,7 @@ export interface RoomAvailability {
   roomId: number;
   isAvailable: boolean;
   nextAvailableTime: string | null;
+  reservedByName: string | null;
 }
 
 export const api = {

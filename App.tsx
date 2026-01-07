@@ -120,6 +120,7 @@ const App: React.FC = () => {
           status: r.status as 'active' | 'maintenance' | undefined,
           pricePerHour: r.pricePerHour || undefined,
           nextAvailableTime: roomAvailability?.nextAvailableTime || null,
+          reservedByName: roomAvailability?.reservedByName || null,
         };
       });
       const filtered = mappedRooms.filter(room => room.capacity >= Number(filters.capacity));

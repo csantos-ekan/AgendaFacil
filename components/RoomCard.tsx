@@ -59,9 +59,16 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook }) => {
 
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 min-h-[57px]">
           {!room.isAvailable && room.nextAvailableTime && (
-             <p className="text-sm text-medium italic">
-               Próximo horário livre: {room.nextAvailableTime}
-             </p>
+             <div className="flex flex-col">
+               <p className="text-sm text-medium italic">
+                 Próximo horário livre: {room.nextAvailableTime}
+               </p>
+               {room.reservedByName && (
+                 <p className="text-sm text-medium italic">
+                   Reservado por {room.reservedByName}
+                 </p>
+               )}
+             </div>
           )}
           {!room.isAvailable && !room.nextAvailableTime && (
              <p className="text-sm text-medium italic">

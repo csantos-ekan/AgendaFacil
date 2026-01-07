@@ -4,6 +4,7 @@ export interface RoomAvailabilityResult {
   roomId: number;
   isAvailable: boolean;
   nextAvailableTime: string | null;
+  reservedByName: string | null;
 }
 
 function timeToMinutes(time: string): number {
@@ -34,6 +35,7 @@ export async function checkRoomAvailability(
 
   let hasConflict = false;
   let nextAvailableTime: string | null = null;
+  let reservedByUserId: number | null = null;
 
   for (const reservation of roomReservations) {
     const resStart = timeToMinutes(reservation.startTime);
@@ -41,6 +43,7 @@ export async function checkRoomAvailability(
 
     if (requestedStart < resEnd && requestedEnd > resStart) {
       hasConflict = true;
+      reservedByUserId = reservation.userId;
       
       let candidateTime = resEnd;
       
@@ -58,10 +61,19 @@ export async function checkRoomAvailability(
     }
   }
 
+  let reservedByName: string | null = null;
+  if (reservedByUserId) {
+    const user = await storage.getUser(reservedByUserId);
+    if (user) {
+      reservedByName = user.name;
+    }
+  }
+
   return {
     roomId,
     isAvailable: !hasConflict,
-    nextAvailableTime
+    nextAvailableTime,
+    reservedByName
   };
 }
 
