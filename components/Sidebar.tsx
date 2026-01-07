@@ -54,8 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
 
   return (
     <aside className="w-64 bg-white border-r border-gray-100 flex flex-col h-screen sticky top-0 hidden lg:flex">
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-8 cursor-pointer" onClick={() => onNavigate('search')}>
+      <div className="p-6 flex-1 overflow-y-auto">
+        <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => onNavigate('search')}>
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
             R
           </div>
@@ -64,8 +64,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
 
         {/* ADMIN SECTION */}
         {isAdmin && (
-          <div className="mb-8">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-4">Administração</p>
+          <div className="mb-6">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-3">Administração</p>
             <NavItem tab="users-management" icon={Users} label="Gestão de Usuários" />
             <NavItem tab="rooms-management" icon={DoorOpen} label="Gestão de Salas" />
             <NavItem tab="resources-management" icon={Package} label="Gestão de Recursos" />
@@ -73,8 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
         )}
 
         {/* USER SECTION */}
-        <div className="mb-8">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-4">Minha Área</p>
+        <div className="mb-4">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-3">Minha Área</p>
           <NavItem tab="search" icon={Search} label="Buscar Sala" />
           <NavItem tab="reservations" icon={CalendarCheck} label="Minhas Reservas" />
           <NavItem tab="profile" icon={UserCircle} label="Meu Perfil" />
