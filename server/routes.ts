@@ -314,10 +314,27 @@ router.post("/resources", async (req: Request, res: Response) => {
 
 router.put("/resources/:id", async (req: Request, res: Response) => {
   try {
-    const updatedResource = await storage.updateResource(parseInt(req.params.id), req.body);
+    const resourceId = parseInt(req.params.id);
+    const updatedResource = await storage.updateResource(resourceId, req.body);
     
     if (!updatedResource) {
       return res.status(404).json({ message: "Recurso não encontrado" });
+    }
+
+    // Propagar atualização para todas as salas que possuem este recurso
+    const allRooms = await storage.getAllRooms();
+    for (const room of allRooms) {
+      const amenities = room.amenities as Array<Record<string, unknown>> || [];
+      const hasResource = amenities.some(a => a.id === resourceId);
+      
+      if (hasResource) {
+        const updatedAmenities = amenities.map(a => 
+          a.id === resourceId 
+            ? { ...a, name: updatedResource.name, category: updatedResource.category, status: updatedResource.status }
+            : a
+        );
+        await storage.updateRoom(room.id, { amenities: updatedAmenities });
+      }
     }
 
     return res.json(updatedResource);
@@ -329,7 +346,21 @@ router.put("/resources/:id", async (req: Request, res: Response) => {
 
 router.delete("/resources/:id", async (req: Request, res: Response) => {
   try {
-    const deleted = await storage.deleteResource(parseInt(req.params.id));
+    const resourceId = parseInt(req.params.id);
+    
+    // Remover recurso de todas as salas que o possuem
+    const allRooms = await storage.getAllRooms();
+    for (const room of allRooms) {
+      const amenities = room.amenities as Array<Record<string, unknown>> || [];
+      const hasResource = amenities.some(a => a.id === resourceId);
+      
+      if (hasResource) {
+        const updatedAmenities = amenities.filter(a => a.id !== resourceId);
+        await storage.updateRoom(room.id, { amenities: updatedAmenities });
+      }
+    }
+    
+    const deleted = await storage.deleteResource(resourceId);
     if (!deleted) {
       return res.status(404).json({ message: "Recurso não encontrado" });
     }

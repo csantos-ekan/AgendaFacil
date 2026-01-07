@@ -94,6 +94,10 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-07
+- Correção da propagação de atualizações de recursos para todas as salas
+  - Quando um recurso é atualizado, a mudança agora reflete em todas as salas que possuem esse recurso
+  - Quando um recurso é excluído, ele é removido de todas as salas automaticamente
+  - Preserva metadados adicionais dos amenities ao atualizar
 - Integração de e-mail e Google Calendar nas reservas
   - Envio de e-mail de convite para participantes via SMTP Google Workspace
   - Criação automática de evento no Google Calendar com participantes
