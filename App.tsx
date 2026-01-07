@@ -12,7 +12,7 @@ import { RoomsManagementView } from './components/RoomsManagementView';
 import { ResourcesManagementView } from './components/ResourcesManagementView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Menu } from 'lucide-react';
 import { api, setAuthUser } from './lib/api';
 import { validateReservationTime } from './lib/validation';
 
@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -193,15 +194,33 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
-      {/* Sidebar - Desktop Only */}
+      {/* Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
         onNavigate={setActiveTab} 
         user={currentUser}
         onLogout={handleLogout}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileClose={() => setIsMobileMenuOpen(false)}
       />
 
       <div className="flex-1 flex flex-col min-h-screen">
+        {/* Mobile Header with Hamburger */}
+        <div className="lg:hidden flex items-center gap-3 p-4 bg-white border-b border-gray-100">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <Menu className="w-6 h-6 text-gray-600" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+              R
+            </div>
+            <span className="text-lg font-bold text-dark tracking-tight">RoomBooker</span>
+          </div>
+        </div>
+
         <Header 
           activeTab={activeTab} 
           onNavigate={setActiveTab} 

@@ -6,7 +6,8 @@ import {
   Search, 
   CalendarCheck, 
   UserCircle, 
-  LogOut 
+  LogOut,
+  X
 } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { cn } from '../lib/utils';
@@ -16,10 +17,22 @@ interface SidebarProps {
   onNavigate: (tab: ViewState) => void;
   user: User;
   onLogout: () => void;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, onLogout, isMobileOpen = false, onMobileClose }) => {
   const isAdmin = user.role === 'admin';
+
+  const handleNavigate = (tab: ViewState) => {
+    onNavigate(tab);
+    onMobileClose?.();
+  };
+
+  const handleLogout = () => {
+    onLogout();
+    onMobileClose?.();
+  };
 
   const NavItem = ({ 
     tab, 
@@ -36,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
     
     return (
       <button
-        onClick={() => tab ? onNavigate(tab) : null}
+        onClick={() => tab ? handleNavigate(tab) : null}
         className={cn(
           "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 mb-1",
           active 
@@ -52,14 +65,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
     );
   };
 
-  return (
-    <aside className="w-64 bg-white border-r border-gray-100 flex flex-col h-screen sticky top-0 hidden lg:flex">
-      <div className="p-6 flex-1 overflow-y-auto">
-        <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => onNavigate('search')}>
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-            R
+  const SidebarContent = () => (
+    <>
+      <div className="p-6 flex-1">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigate('search')}>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+              R
+            </div>
+            <span className="text-xl font-bold text-dark tracking-tight">RoomBooker</span>
           </div>
-          <span className="text-xl font-bold text-dark tracking-tight">RoomBooker</span>
+          {onMobileClose && (
+            <button onClick={onMobileClose} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          )}
         </div>
 
         {/* ADMIN SECTION */}
@@ -83,13 +103,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
 
       <div className="mt-auto p-6 border-t border-gray-50">
         <button 
-          onClick={onLogout}
+          onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
         >
           <LogOut className="w-5 h-5" />
           Sair
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-100 flex-col h-screen sticky top-0 hidden lg:flex">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 bg-black/50" onClick={onMobileClose} />
+          <aside className="fixed left-0 top-0 h-full w-64 bg-white flex flex-col shadow-xl">
+            <SidebarContent />
+          </aside>
+        </div>
+      )}
+    </>
   );
 };
