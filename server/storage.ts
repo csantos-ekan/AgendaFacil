@@ -1,6 +1,6 @@
 import { users, rooms, resources, reservations, type User, type InsertUser, type Room, type InsertRoom, type Resource, type InsertResource, type Reservation, type InsertReservation } from "../shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -134,7 +134,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReservationsByUser(userId: number): Promise<Reservation[]> {
-    return await db.select().from(reservations).where(eq(reservations.userId, userId));
+    const fifteenDaysAgo = new Date();
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+    const cutoffDate = fifteenDaysAgo.toISOString().split('T')[0];
+    
+    return await db.select().from(reservations).where(
+      and(
+        eq(reservations.userId, userId),
+        gte(reservations.date, cutoffDate)
+      )
+    );
   }
 }
 
