@@ -447,9 +447,15 @@ router.post("/reservations", async (req: Request, res: Response) => {
     const organizer = await storage.getUser(userId);
     const organizerName = organizer?.name || 'Usuário';
     const organizerEmail = organizer?.email || '';
-    const participants = parseParticipantEmails(participantEmails || '');
+    const externalParticipants = parseParticipantEmails(participantEmails || '');
+    
+    const emailParticipants = organizerEmail 
+      ? [organizerEmail, ...externalParticipants.filter(e => e.toLowerCase() !== organizerEmail.toLowerCase())]
+      : externalParticipants;
+    
+    const calendarAttendees = externalParticipants.filter(e => e.toLowerCase() !== organizerEmail.toLowerCase());
 
-    if (participants.length > 0) {
+    if (organizerEmail) {
       setImmediate(() => {
         sendReservationEmail({
           organizerName,
@@ -458,7 +464,7 @@ router.post("/reservations", async (req: Request, res: Response) => {
           date,
           startTime,
           endTime,
-          participants
+          participants: emailParticipants
         }).catch(err => console.error('Error sending reservation email:', err));
 
         createCalendarEvent({
@@ -469,9 +475,11 @@ router.post("/reservations", async (req: Request, res: Response) => {
           date,
           startTime,
           endTime,
-          participants
+          participants: calendarAttendees
         }).catch(err => console.error('Error creating calendar event:', err));
       });
+    } else {
+      console.log('Skipping email/calendar: organizer email not found');
     }
 
     return res.status(201).json(newReservation);
