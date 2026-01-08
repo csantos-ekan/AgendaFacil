@@ -1,0 +1,154 @@
+Implemente autenticação JWT segura no sistema. Siga exatamente estas especificações:
+
+CONTEXTO:
+- Sistema atual usa headers x-user-id e x-user-role (INSEGURO)
+- Preciso substituir por JWT com tokens assinados
+
+TAREFAS:
+
+1. Instale dependência:
+npm install jsonwebtoken
+npm install --save-dev @types/jsonwebtoken
+
+2. Crie arquivo server/auth.ts com:
+```typescript
+import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE-ME-IN-PRODUCTION-MIN-32-CHARS';
+const JWT_EXPIRY = '8h';
+
+export interface TokenPayload {
+  userId: number;
+  role: string;
+  email: string;
+}
+
+export function generateToken(payload: TokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+export function verifyToken(token: string): TokenPayload {
+  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+}
+
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+  
+  const token = authHeader.substring(7);
+  
+  try {
+    const decoded = verifyToken(token);
+    req.userId = decoded.userId;
+    req.userRole = decoded.role;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token inválido ou expirado" });
+  }
+};
+
+export const adminMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: "Acesso negado - Apenas administradores" });
+  }
+  next();
+};
+```
+
+3. Atualize server/routes.ts - rota de login:
+No topo do arquivo, adicione imports:
+```typescript
+import { generateToken } from "./auth";
+```
+
+Substitua o código do POST /auth/login por:
+```typescript
+router.post("/auth/login", async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email e senha são obrigatórios" });
+    }
+
+    const user = await storage.getUserByEmail(email);
+    
+    if (!user) {
+      return res.status(401).json({ message: "Credenciais inválidas" });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Credenciais inválidas" });
+    }
+
+    const token = generateToken({
+      userId: user.id,
+      role: user.role,
+      email: user.email
+    });
+
+    const { password: _, ...userWithoutPassword } = user;
+    return res.json({ 
+      user: userWithoutPassword,
+      token 
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+```
+
+4. No início de server/routes.ts, adicione import:
+```typescript
+import { authMiddleware, adminMiddleware } from "./auth";
+```
+
+5. Proteja TODAS as rotas exceto /auth/login:
+Adicione authMiddleware nas seguintes rotas (coloque ANTES do async):
+- router.get("/users", authMiddleware, adminMiddleware, async ...)
+- router.get("/users/:id", authMiddleware, async ...)
+- router.post("/users", authMiddleware, adminMiddleware, async ...)
+- router.put("/users/:id", authMiddleware, async ...)
+- router.delete("/users/:id", authMiddleware, adminMiddleware, async ...)
+- router.post("/users/:id/avatar", authMiddleware, async ...)
+- router.get("/rooms", authMiddleware, async ...)
+- router.get("/rooms/availability", authMiddleware, async ...)
+- router.get("/rooms/:id", authMiddleware, async ...)
+- router.post("/rooms", authMiddleware, adminMiddleware, async ...)
+- router.put("/rooms/:id", authMiddleware, adminMiddleware, async ...)
+- router.delete("/rooms/:id", authMiddleware, adminMiddleware, async ...)
+- router.get("/resources", authMiddleware, async ...)
+- router.get("/resources/:id", authMiddleware, async ...)
+- router.post("/resources", authMiddleware, adminMiddleware, async ...)
+- router.put("/resources/:id", authMiddleware, adminMiddleware, async ...)
+- router.delete("/resources/:id", authMiddleware, adminMiddleware, async ...)
+- router.get("/reservations", authMiddleware, async ...)
+- router.get("/reservations/user/:userId", authMiddleware, async ...)
+- router.get("/reservations/:id", authMiddleware, async ...)
+- router.post("/reservations", authMiddleware, async ...)
+- router.put("/reservations/:id", authMiddleware, async ...)
+- router.delete("/reservations/:id", authMiddleware, async ...)
+
+6. Adicione ao .env.local (gere uma chave aleatória de 32+ caracteres):
+JWT_SECRET=sua-chave-super-secreta-minimo-32-caracteres-aleatorios-aqui
+
+7. Delete arquivo server/middleware.ts (não é mais necessário)
+
+8. Atualize o frontend para usar o token:
+No arquivo lib/api.ts, adicione interceptor para incluir token em todas as requisições.
+
+VALIDAÇÃO:
+Após implementar, teste:
+1. Login deve retornar token
+2. Chamadas sem token devem retornar 401
+3. Chamadas com token inválido devem retornar 401
+4. Chamadas com token válido devem funcionar
+
+Implemente agora.
