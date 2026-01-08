@@ -93,6 +93,13 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-08
+- Organizador sempre recebe e-mail e evento no Google Calendar
+  - O usuário que faz a reserva é automaticamente incluído nos destinatários de e-mail
+  - Evento no Google Calendar é criado com o organizador como dono (não duplicado nos attendees)
+  - Mesmo sem participantes externos, o organizador recebe confirmação
+  - Endpoint de teste GET /api/test/calendar para diagnóstico da integração
+
 ### 2026-01-07
 - Correção da propagação de atualizações de recursos para todas as salas
   - Quando um recurso é atualizado, a mudança agora reflete em todas as salas que possuem esse recurso
