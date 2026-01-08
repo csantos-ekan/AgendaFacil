@@ -40,7 +40,7 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 │   ├── storage.ts          # Camada de acesso a dados
 │   ├── db.ts               # Conexão com banco de dados
 │   ├── seed.ts             # Dados iniciais
-│   └── middleware.ts       # Middleware de autenticação
+│   └── auth.ts             # Autenticação JWT (geração e validação de tokens)
 ├── shared/
 │   └── schema.ts           # Schema do banco (Drizzle)
 ├── types.ts                # Tipos TypeScript compartilhados
@@ -50,7 +50,8 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## API Endpoints
 
 ### Autenticação
-- `POST /api/auth/login` - Login de usuário
+- `POST /api/auth/login` - Login de usuário (retorna token JWT)
+- `GET /api/auth/me` - Dados do usuário autenticado (requer token)
 
 ### Usuários
 - `GET /api/users` - Listar todos os usuários
@@ -94,6 +95,17 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-08
+- Implementação de autenticação JWT segura
+  - Token JWT assinado com secret configurável (JWT_SECRET)
+  - Expiração de 8 horas por token
+  - Middleware authMiddleware protege todas as rotas (exceto login)
+  - Middleware adminMiddleware restringe rotas de admin
+  - Persistência de sessão no localStorage
+  - Rehydration automática ao recarregar a página
+  - Endpoint GET /api/auth/me para validar token e obter dados do usuário
+- Campos opcionais de título e descrição na reserva
+  - Título personalizado substitui "Reunião – [Sala]" no Google Calendar
+  - Descrição é adicionada ao corpo do evento
 - Autocomplete de participantes no modal de reserva
   - Ao digitar 2+ caracteres, sugere usuários cadastrados no sistema
   - Busca por nome ou email do usuário

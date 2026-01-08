@@ -106,6 +106,10 @@ export const api = {
       setAuthToken(result.token);
       return result;
     },
+    me: async (): Promise<{ user: ApiUser }> => {
+      const response = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
+      return handleResponse(response);
+    },
   },
 
   users: {

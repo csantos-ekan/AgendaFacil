@@ -31,6 +31,30 @@ const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [allUsers, setAllUsers] = useState<{id: number; name: string; email: string; avatar?: string | null}[]>([]);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkStoredAuth = async () => {
+      const token = getStoredToken();
+      if (token) {
+        try {
+          const { user } = await api.auth.me();
+          setCurrentUser({
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            role: user.role as 'admin' | 'colaborador',
+            avatar: user.avatar || undefined,
+          });
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          clearAuth();
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+    checkStoredAuth();
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -206,6 +230,17 @@ const App: React.FC = () => {
   };
 
   // Se não estiver autenticado, renderiza a LoginView
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
     return <LoginView onLogin={handleLogin} />;
   }

@@ -9,6 +9,26 @@ import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 
 export const router = Router();
 
+router.get("/auth/me", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Não autenticado" });
+    }
+    
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+    
+    const { password: _, ...userWithoutPassword } = user;
+    return res.json({ user: userWithoutPassword });
+  } catch (error) {
+    console.error("Auth me error:", error);
+    return res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
 router.post("/auth/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
