@@ -10,6 +10,15 @@ interface ReservationListProps {
 }
 
 export const ReservationList: React.FC<ReservationListProps> = ({ reservations, onCancel }) => {
+  const sortedReservations = [...reservations].sort((a, b) => {
+    if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
+    if (a.status !== 'confirmed' && b.status === 'confirmed') return 1;
+    
+    const dateTimeA = new Date(`${a.date}T${a.startTime}`).getTime();
+    const dateTimeB = new Date(`${b.date}T${b.startTime}`).getTime();
+    return dateTimeA - dateTimeB;
+  });
+
   if (reservations.length === 0) {
     return (
       <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -24,7 +33,7 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {reservations.map((res) => (
+      {sortedReservations.map((res) => (
         <div key={res.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow relative">
            <div className="flex justify-between items-start mb-4">
             <div>
