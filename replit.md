@@ -94,6 +94,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-08
+- Autocomplete de participantes no modal de reserva
+  - Ao digitar 2+ caracteres, sugere usuários cadastrados no sistema
+  - Busca por nome ou email do usuário
+  - Exclui o próprio usuário (organizador) das sugestões
+  - Exclui emails já adicionados ao campo
+  - Mostra avatar, nome e email nas sugestões
 - Notificação apenas via Google Calendar (removido email SMTP separado)
   - Participantes recebem apenas o convite do Google Calendar com opções Aceitar/Recusar
   - Evita emails duplicados (antes eram enviados email SMTP + convite Calendar)
