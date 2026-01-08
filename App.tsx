@@ -30,11 +30,13 @@ const App: React.FC = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [allUsers, setAllUsers] = useState<{id: number; name: string; email: string; avatar?: string | null}[]>([]);
 
   useEffect(() => {
     if (currentUser) {
       loadRooms();
       loadReservations();
+      loadUsers();
     }
   }, [currentUser]);
 
@@ -82,6 +84,21 @@ const App: React.FC = () => {
       setReservations(mappedReservations);
     } catch (error) {
       console.error('Error loading reservations:', error);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const apiUsers = await api.users.getAll();
+      const mappedUsers = apiUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        avatar: u.avatar
+      }));
+      setAllUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -322,6 +339,8 @@ const App: React.FC = () => {
         onConfirm={handleConfirmBooking}
         room={selectedRoom}
         filters={filters}
+        users={allUsers}
+        currentUserId={currentUser ? parseInt(currentUser.id) : undefined}
       />
 
       {/* Success Toast */}
