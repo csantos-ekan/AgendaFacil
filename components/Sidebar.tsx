@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
 
   const SidebarContent = () => (
     <>
-      <div className="p-6 flex-1">
+      <div className="p-6 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigate('search')}>
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
@@ -99,16 +99,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
           <NavItem tab="reservations" icon={CalendarCheck} label="Minhas Reservas" />
           <NavItem tab="profile" icon={UserCircle} label="Meu Perfil" />
         </div>
-      </div>
 
-      <div className="mt-auto p-6 border-t border-gray-50">
-        <button 
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-          Sair
-        </button>
+        <div className="pt-4 border-t border-gray-100">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            Sair
+          </button>
+        </div>
       </div>
     </>
   );
