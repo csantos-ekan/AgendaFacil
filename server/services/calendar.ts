@@ -9,6 +9,8 @@ interface CalendarEventData {
   startTime: string;
   endTime: string;
   participants: string[];
+  title?: string;
+  description?: string;
 }
 
 interface CalendarTestResult {
@@ -170,10 +172,15 @@ export async function createCalendarEvent(data: CalendarEventData): Promise<bool
       responseStatus: 'needsAction'
     }));
 
+    const eventTitle = data.title || `Reunião – ${data.roomName}`;
+    const eventDescription = data.description 
+      ? `${data.description}\n\nSala: ${data.roomName}\nLocal: ${data.roomLocation}\nOrganizador: ${data.organizerName}`
+      : `Sala: ${data.roomName}\nLocal: ${data.roomLocation}\nOrganizador: ${data.organizerName}`;
+
     const event = {
-      summary: `Reunião – ${data.roomName}`,
+      summary: eventTitle,
       location: data.roomLocation,
-      description: `Sala: ${data.roomName}\nLocal: ${data.roomLocation}\nOrganizador: ${data.organizerName}`,
+      description: eventDescription,
       start: {
         dateTime: buildDateTime(data.date, data.startTime),
         timeZone: 'America/Sao_Paulo'

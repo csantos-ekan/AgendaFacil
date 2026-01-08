@@ -156,7 +156,7 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmBooking = async (participantEmails: string = '') => {
+  const handleConfirmBooking = async (details: { participantEmails: string; title?: string; description?: string }) => {
     if (!selectedRoom || !currentUser) return;
 
     const validation = validateReservationTime(filters.date, filters.startTime, filters.endTime);
@@ -176,7 +176,9 @@ const App: React.FC = () => {
         startTime: filters.startTime,
         endTime: filters.endTime,
         status: 'confirmed',
-        participantEmails,
+        participantEmails: details.participantEmails,
+        title: details.title,
+        description: details.description,
       });
 
       setIsModalOpen(false);

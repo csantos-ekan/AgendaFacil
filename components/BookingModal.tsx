@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Type, FileText } from 'lucide-react';
 import { Room, SearchFilters } from '../types';
 import { Button } from './ui/button';
 import { ParticipantAutocomplete } from './ParticipantAutocomplete';
@@ -11,10 +11,16 @@ interface UserSuggestion {
   avatar?: string | null;
 }
 
+export interface BookingDetails {
+  participantEmails: string;
+  title?: string;
+  description?: string;
+}
+
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (participantEmails: string) => void;
+  onConfirm: (details: BookingDetails) => void;
   room: Room | null;
   filters: SearchFilters;
   users?: UserSuggestion[];
@@ -31,14 +37,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   currentUserId
 }) => {
   const [inviteEmails, setInviteEmails] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setInviteEmails('');
+      setTitle('');
+      setDescription('');
     }
   }, [isOpen]);
 
   if (!isOpen || !room) return null;
+
+  const handleConfirm = () => {
+    onConfirm({
+      participantEmails: inviteEmails,
+      title: title.trim() || undefined,
+      description: description.trim() || undefined
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -47,9 +65,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up max-h-[90vh] overflow-y-auto">
         
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 sticky top-0 z-10">
           <h3 className="text-lg font-semibold text-dark">Confirmar Reserva</h3>
           <button 
             onClick={onClose}
@@ -95,6 +113,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-dark mb-2">Título da Reunião</label>
+            <div className="relative">
+              <div className="absolute top-3 left-3 pointer-events-none">
+                <Type className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Alinhamento de Projeto"
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary bg-white text-dark"
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-dark mb-2">Descrição</label>
+            <div className="relative">
+              <div className="absolute top-3 left-3 pointer-events-none">
+                <FileText className="h-4 w-4 text-gray-400" />
+              </div>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Descreva o objetivo da reunião..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary min-h-[60px] resize-none bg-white text-dark"
+              />
+            </div>
+          </div>
+
           <div className="mb-2">
             <label className="block text-sm font-medium text-dark mb-2">Convidar Participantes</label>
             <ParticipantAutocomplete
@@ -109,9 +158,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3 justify-end sticky bottom-0">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onConfirm(inviteEmails)}>Confirmar Reserva</Button>
+          <Button onClick={handleConfirm}>Confirmar Reserva</Button>
         </div>
       </div>
     </div>

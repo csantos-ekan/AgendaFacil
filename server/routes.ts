@@ -406,7 +406,7 @@ router.get("/reservations/:id", async (req: Request, res: Response) => {
 
 router.post("/reservations", async (req: Request, res: Response) => {
   try {
-    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset, participantEmails } = req.body;
+    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset, participantEmails, title, description } = req.body;
     
     if (!roomId || !userId || !date || !startTime || !endTime) {
       return res.status(400).json({ message: "Dados da reserva incompletos" });
@@ -461,7 +461,9 @@ router.post("/reservations", async (req: Request, res: Response) => {
           date,
           startTime,
           endTime,
-          participants: calendarAttendees
+          participants: calendarAttendees,
+          title: title || undefined,
+          description: description || undefined
         }).catch(err => console.error('Error creating calendar event:', err));
       });
     } else {
