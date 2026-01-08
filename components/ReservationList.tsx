@@ -11,12 +11,19 @@ interface ReservationListProps {
 
 export const ReservationList: React.FC<ReservationListProps> = ({ reservations, onCancel }) => {
   const sortedReservations = [...reservations].sort((a, b) => {
-    if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
-    if (a.status !== 'confirmed' && b.status === 'confirmed') return 1;
+    const now = Date.now();
+    const dateTimeA = new Date(`${a.date}T${a.endTime}`).getTime();
+    const dateTimeB = new Date(`${b.date}T${b.endTime}`).getTime();
     
-    const dateTimeA = new Date(`${a.date}T${a.startTime}`).getTime();
-    const dateTimeB = new Date(`${b.date}T${b.startTime}`).getTime();
-    return dateTimeA - dateTimeB;
+    const aIsFuture = a.status === 'confirmed' && dateTimeA > now;
+    const bIsFuture = b.status === 'confirmed' && dateTimeB > now;
+    
+    if (aIsFuture && !bIsFuture) return -1;
+    if (!aIsFuture && bIsFuture) return 1;
+    
+    const startTimeA = new Date(`${a.date}T${a.startTime}`).getTime();
+    const startTimeB = new Date(`${b.date}T${b.startTime}`).getTime();
+    return startTimeA - startTimeB;
   });
 
   if (reservations.length === 0) {
