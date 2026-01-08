@@ -206,18 +206,29 @@ const App: React.FC = () => {
 
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Mobile Header with Hamburger */}
-        <div className="lg:hidden flex items-center gap-3 p-4 bg-white border-b border-gray-100">
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <Menu className="w-6 h-6 text-gray-600" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-              R
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Menu className="w-6 h-6 text-gray-600" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+                R
+              </div>
+              <span className="text-lg font-bold text-dark tracking-tight">RoomBooker</span>
             </div>
-            <span className="text-lg font-bold text-dark tracking-tight">RoomBooker</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
+              <img 
+                src={currentUser?.avatar || "https://i.pravatar.cc/150?u=fallback"} 
+                alt="Avatar" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
           </div>
         </div>
 
