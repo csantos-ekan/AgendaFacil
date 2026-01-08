@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
-import { sendReservationEmail, parseParticipantEmails } from "./services/email";
+import { parseParticipantEmails } from "./services/email";
 import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
 
 export const router = Router();
@@ -449,24 +449,10 @@ router.post("/reservations", async (req: Request, res: Response) => {
     const organizerEmail = organizer?.email || '';
     const externalParticipants = parseParticipantEmails(participantEmails || '');
     
-    const emailParticipants = organizerEmail 
-      ? [organizerEmail, ...externalParticipants.filter(e => e.toLowerCase() !== organizerEmail.toLowerCase())]
-      : externalParticipants;
-    
     const calendarAttendees = externalParticipants.filter(e => e.toLowerCase() !== organizerEmail.toLowerCase());
 
     if (organizerEmail) {
       setImmediate(() => {
-        sendReservationEmail({
-          organizerName,
-          roomName: roomName || '',
-          roomLocation: roomLocation || '',
-          date,
-          startTime,
-          endTime,
-          participants: emailParticipants
-        }).catch(err => console.error('Error sending reservation email:', err));
-
         createCalendarEvent({
           organizerName,
           organizerEmail,
@@ -479,7 +465,7 @@ router.post("/reservations", async (req: Request, res: Response) => {
         }).catch(err => console.error('Error creating calendar event:', err));
       });
     } else {
-      console.log('Skipping email/calendar: organizer email not found');
+      console.log('Skipping calendar: organizer email not found');
     }
 
     return res.status(201).json(newReservation);
