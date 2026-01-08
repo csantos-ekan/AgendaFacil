@@ -5,6 +5,7 @@ import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
 import { parseParticipantEmails } from "./services/email";
 import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
+import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 
 export const router = Router();
 
@@ -28,15 +29,24 @@ router.post("/auth/login", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Credenciais inválidas" });
     }
 
+    const token = generateToken({
+      userId: user.id,
+      role: user.role,
+      email: user.email
+    });
+
     const { password: _, ...userWithoutPassword } = user;
-    return res.json({ user: userWithoutPassword });
+    return res.json({ 
+      user: userWithoutPassword,
+      token 
+    });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
 
-router.get("/users", async (_req: Request, res: Response) => {
+router.get("/users", authMiddleware, adminMiddleware, async (_req: Request, res: Response) => {
   try {
     const users = await storage.getAllUsers();
     const usersWithoutPasswords = users.map(({ password, ...user }) => user);
@@ -47,7 +57,7 @@ router.get("/users", async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/users/:id", async (req: Request, res: Response) => {
+router.get("/users/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await storage.getUser(parseInt(req.params.id));
     if (!user) {
@@ -63,7 +73,7 @@ router.get("/users/:id", async (req: Request, res: Response) => {
 
 const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiNmMWY1ZjkiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PHBhdGggZD0iTTcgMjAuNjYyVjE5YTQgNCAwIDAgMSA0LTRoMmE0IDQgMCAwIDEgNCA0djEuNjYyIi8+PC9zdmc+";
 
-router.post("/users", async (req: Request, res: Response) => {
+router.post("/users", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
     
@@ -96,7 +106,7 @@ router.post("/users", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/users/:id", async (req: Request, res: Response) => {
+router.put("/users/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
     const updateData: any = { name, email, role, status, cpf, avatar };
@@ -123,7 +133,7 @@ router.put("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/users/:id", async (req: Request, res: Response) => {
+router.delete("/users/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteUser(parseInt(req.params.id));
     if (!deleted) {
@@ -136,7 +146,7 @@ router.delete("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/users/:id/avatar", async (req: Request, res: Response) => {
+router.post("/users/:id/avatar", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { avatar } = req.body;
     
@@ -158,7 +168,7 @@ router.post("/users/:id/avatar", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/rooms", async (_req: Request, res: Response) => {
+router.get("/rooms", authMiddleware, async (_req: Request, res: Response) => {
   try {
     const rooms = await storage.getAllRooms();
     const allResources = await storage.getAllResources();
@@ -180,7 +190,7 @@ router.get("/rooms", async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/rooms/availability", async (req: Request, res: Response) => {
+router.get("/rooms/availability", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { date, startTime, endTime } = req.query;
     
@@ -201,7 +211,7 @@ router.get("/rooms/availability", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/rooms/:id", async (req: Request, res: Response) => {
+router.get("/rooms/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const room = await storage.getRoom(parseInt(req.params.id));
     if (!room) {
@@ -214,7 +224,7 @@ router.get("/rooms/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/rooms", async (req: Request, res: Response) => {
+router.post("/rooms", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, capacity, location, image, amenities, isAvailable, status, pricePerHour } = req.body;
     
@@ -240,7 +250,7 @@ router.post("/rooms", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/rooms/:id", async (req: Request, res: Response) => {
+router.put("/rooms/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const updatedRoom = await storage.updateRoom(parseInt(req.params.id), req.body);
     
@@ -255,7 +265,7 @@ router.put("/rooms/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/rooms/:id", async (req: Request, res: Response) => {
+router.delete("/rooms/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteRoom(parseInt(req.params.id));
     if (!deleted) {
@@ -268,7 +278,7 @@ router.delete("/rooms/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/resources", async (_req: Request, res: Response) => {
+router.get("/resources", authMiddleware, async (_req: Request, res: Response) => {
   try {
     const resources = await storage.getAllResources();
     return res.json(resources);
@@ -278,7 +288,7 @@ router.get("/resources", async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/resources/:id", async (req: Request, res: Response) => {
+router.get("/resources/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const resource = await storage.getResource(parseInt(req.params.id));
     if (!resource) {
@@ -291,7 +301,7 @@ router.get("/resources/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/resources", async (req: Request, res: Response) => {
+router.post("/resources", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, category, status } = req.body;
     
@@ -312,7 +322,7 @@ router.post("/resources", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/resources/:id", async (req: Request, res: Response) => {
+router.put("/resources/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const resourceId = parseInt(req.params.id);
     const updatedResource = await storage.updateResource(resourceId, req.body);
@@ -344,7 +354,7 @@ router.put("/resources/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/resources/:id", async (req: Request, res: Response) => {
+router.delete("/resources/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
     const resourceId = parseInt(req.params.id);
     
@@ -371,7 +381,7 @@ router.delete("/resources/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/reservations", async (_req: Request, res: Response) => {
+router.get("/reservations", authMiddleware, async (_req: Request, res: Response) => {
   try {
     const reservations = await storage.getAllReservations();
     return res.json(reservations);
@@ -381,7 +391,7 @@ router.get("/reservations", async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/reservations/user/:userId", async (req: Request, res: Response) => {
+router.get("/reservations/user/:userId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const reservations = await storage.getReservationsByUser(parseInt(req.params.userId));
     return res.json(reservations);
@@ -391,7 +401,7 @@ router.get("/reservations/user/:userId", async (req: Request, res: Response) => 
   }
 });
 
-router.get("/reservations/:id", async (req: Request, res: Response) => {
+router.get("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const reservation = await storage.getReservation(parseInt(req.params.id));
     if (!reservation) {
@@ -404,7 +414,7 @@ router.get("/reservations/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/reservations", async (req: Request, res: Response) => {
+router.post("/reservations", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset, participantEmails, title, description } = req.body;
     
@@ -477,7 +487,7 @@ router.post("/reservations", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/reservations/:id", async (req: Request, res: Response) => {
+router.put("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const updatedReservation = await storage.updateReservation(parseInt(req.params.id), req.body);
     
@@ -492,7 +502,7 @@ router.put("/reservations/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/reservations/:id", async (req: Request, res: Response) => {
+router.delete("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteReservation(parseInt(req.params.id));
     if (!deleted) {

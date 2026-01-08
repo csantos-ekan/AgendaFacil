@@ -13,7 +13,7 @@ import { ResourcesManagementView } from './components/ResourcesManagementView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
 import { CheckCircle2, AlertCircle, Menu } from 'lucide-react';
-import { api, setAuthUser } from './lib/api';
+import { api, clearAuth, getStoredToken } from './lib/api';
 import { validateReservationTime } from './lib/validation';
 
 const App: React.FC = () => {
@@ -104,12 +104,11 @@ const App: React.FC = () => {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    setAuthUser(user.id, user.role);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setAuthUser(null, null);
+    clearAuth();
     setActiveTab('search');
   };
 

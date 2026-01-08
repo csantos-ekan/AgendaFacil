@@ -1,22 +1,35 @@
 const API_BASE = "/api";
 
-let currentUserId: string | null = null;
-let currentUserRole: string | null = null;
+let authToken: string | null = null;
 
-export function setAuthUser(userId: string | null, role: string | null) {
-  currentUserId = userId;
-  currentUserRole = role;
+export function setAuthToken(token: string | null) {
+  authToken = token;
+  if (token) {
+    localStorage.setItem('authToken', token);
+  } else {
+    localStorage.removeItem('authToken');
+  }
+}
+
+export function getStoredToken(): string | null {
+  if (!authToken) {
+    authToken = localStorage.getItem('authToken');
+  }
+  return authToken;
+}
+
+export function clearAuth() {
+  authToken = null;
+  localStorage.removeItem('authToken');
 }
 
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
-  if (currentUserId) {
-    headers["x-user-id"] = currentUserId;
-  }
-  if (currentUserRole) {
-    headers["x-user-role"] = currentUserRole;
+  const token = getStoredToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
@@ -83,13 +96,15 @@ export interface RoomAvailability {
 
 export const api = {
   auth: {
-    login: async (email: string, password: string): Promise<{ user: ApiUser }> => {
+    login: async (email: string, password: string): Promise<{ user: ApiUser; token: string }> => {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      return handleResponse(response);
+      const result = await handleResponse<{ user: ApiUser; token: string }>(response);
+      setAuthToken(result.token);
+      return result;
     },
   },
 
