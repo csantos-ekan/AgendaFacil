@@ -222,6 +222,70 @@ router.post("/users/:id/avatar", authMiddleware, async (req: Request, res: Respo
   }
 });
 
+router.get("/users/:id/export", authMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
+  try {
+    const targetUserId = parseInt(req.params.id);
+    
+    if (req.userId !== targetUserId && req.userRole !== 'admin') {
+      return res.status(403).json({ 
+        message: "Você só pode exportar seus próprios dados" 
+      });
+    }
+
+    const user = await storage.getUser(targetUserId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    const reservations = await storage.getReservationsByUser(targetUserId);
+    
+    const userCPF = user.cpf ? decryptCPF(user.cpf) : null;
+    
+    const exportData = {
+      metadata: {
+        exportDate: new Date().toISOString(),
+        format: 'JSON',
+        version: '1.0',
+        exportedBy: req.userId === targetUserId ? 'user' : 'admin'
+      },
+      personalData: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        cpf: userCPF,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt
+      },
+      reservations: reservations.map(r => ({
+        id: r.id,
+        roomName: r.roomName,
+        roomLocation: r.roomLocation,
+        date: r.date,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        status: r.status,
+        timestamp: r.timestamp
+      })),
+      summary: {
+        totalReservations: reservations.length,
+        activeReservations: reservations.filter(r => r.status === 'confirmed').length,
+        cancelledReservations: reservations.filter(r => r.status === 'cancelled').length
+      }
+    };
+    
+    const filename = `dados-pessoais-${user.email.replace('@', '-at-')}-${Date.now()}.json`;
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    return res.json(exportData);
+  } catch (error) {
+    console.error("Export user data error:", error);
+    return res.status(500).json({ message: "Erro ao exportar dados" });
+  }
+});
+
 router.get("/rooms", authMiddleware, async (_req: Request, res: Response) => {
   try {
     const rooms = await storage.getAllRooms();

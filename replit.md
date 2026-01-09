@@ -95,6 +95,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-09
+- Endpoint de exportação de dados pessoais (LGPD Art. 9 - Direito de acesso)
+  - GET /api/users/:id/export retorna JSON com todos os dados do usuário
+  - Inclui: dados pessoais, CPF descriptografado, histórico de reservas, sumário
+  - Usuário só pode exportar seus próprios dados (403 caso contrário)
+  - Admin pode exportar dados de qualquer usuário
+  - Auditado pelo auditMiddleware
 - Sistema de auditoria para conformidade LGPD Art. 48
   - Tabela audit_logs registra ações em dados pessoais
   - Captura: timestamp, userId, action, resource, resourceId, IP, userAgent, result
