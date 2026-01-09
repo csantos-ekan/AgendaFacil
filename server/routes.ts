@@ -7,6 +7,7 @@ import { checkAllRoomsAvailability } from "./availability";
 import { parseParticipantEmails } from "./services/email";
 import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
+import { encryptCPF, decryptCPF } from "./encryption";
 
 export const router = Router();
 
@@ -31,8 +32,13 @@ router.get("/auth/me", authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
     
-    const { password: _, ...userWithoutPassword } = user;
-    return res.json({ user: userWithoutPassword });
+    const { password: _, cpf, ...userData } = user;
+    return res.json({ 
+      user: {
+        ...userData,
+        cpf: cpf ? decryptCPF(cpf) : undefined
+      }
+    });
   } catch (error) {
     console.error("Auth me error:", error);
     return res.status(500).json({ message: "Erro interno do servidor" });
@@ -79,7 +85,10 @@ router.post("/auth/login", loginLimiter, async (req: Request, res: Response) => 
 router.get("/users", authMiddleware, adminMiddleware, async (_req: Request, res: Response) => {
   try {
     const users = await storage.getAllUsers();
-    const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+    const usersWithoutPasswords = users.map(({ password, cpf, ...user }) => ({
+      ...user,
+      cpf: cpf ? decryptCPF(cpf) : undefined
+    }));
     return res.json(usersWithoutPasswords);
   } catch (error) {
     console.error("Get users error:", error);
@@ -93,8 +102,12 @@ router.get("/users/:id", authMiddleware, async (req: Request, res: Response) => 
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
-    const { password, ...userWithoutPassword } = user;
-    return res.json(userWithoutPassword);
+    const { password, cpf, ...userData } = user;
+    const decryptedUser = {
+      ...userData,
+      cpf: cpf ? decryptCPF(cpf) : undefined
+    };
+    return res.json(decryptedUser);
   } catch (error) {
     console.error("Get user error:", error);
     return res.status(500).json({ message: "Erro ao buscar usuário" });
@@ -124,7 +137,7 @@ router.post("/users", authMiddleware, adminMiddleware, async (req: Request, res:
       password: hashedPassword,
       role: role || "colaborador",
       status: status || "ativo",
-      cpf,
+      cpf: cpf ? encryptCPF(cpf) : undefined,
       avatar: avatar || DEFAULT_AVATAR,
     });
 
@@ -139,10 +152,14 @@ router.post("/users", authMiddleware, adminMiddleware, async (req: Request, res:
 router.put("/users/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
-    const updateData: any = { name, email, role, status, cpf, avatar };
+    const updateData: any = { name, email, role, status, avatar };
     
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
+    }
+    
+    if (cpf) {
+      updateData.cpf = encryptCPF(cpf);
     }
 
     Object.keys(updateData).forEach(key => {
@@ -155,8 +172,11 @@ router.put("/users/:id", authMiddleware, async (req: Request, res: Response) => 
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
-    const { password: _, ...userWithoutPassword } = updatedUser;
-    return res.json(userWithoutPassword);
+    const { password: _, cpf: encryptedCpf, ...userData } = updatedUser;
+    return res.json({
+      ...userData,
+      cpf: encryptedCpf ? decryptCPF(encryptedCpf) : undefined
+    });
   } catch (error) {
     console.error("Update user error:", error);
     return res.status(500).json({ message: "Erro ao atualizar usuário" });

@@ -1,0 +1,146 @@
+Implemente criptografia de CPF conforme LGPD Art. 46.
+
+TAREFAS:
+
+1. Crie arquivo server/encryption.ts:
+
+```typescript
+import crypto from 'crypto';
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const ALGORITHM = 'aes-256-gcm';
+
+export function encryptCPF(cpf: string): string {
+  if (!cpf) return '';
+  
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(
+    ALGORITHM, 
+    Buffer.from(ENCRYPTION_KEY, 'hex'), 
+    iv
+  );
+  
+  let encrypted = cipher.update(cpf, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag();
+  
+  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+}
+
+export function decryptCPF(encryptedCPF: string): string {
+  if (!encryptedCPF) return '';
+  
+  try {
+    const parts = encryptedCPF.split(':');
+    if (parts.length !== 3) return '';
+    
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+    
+    const decipher = crypto.createDecipheriv(
+      ALGORITHM, 
+      Buffer.from(ENCRYPTION_KEY, 'hex'), 
+      iv
+    );
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  } catch (error) {
+    console.error('Error decrypting CPF:', error);
+    return '';
+  }
+}
+```
+
+2. Gere uma chave de criptografia executando no terminal:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+3. Adicione ao .env.local a chave gerada:
+ENCRYPTION_KEY=cole-aqui-a-chave-de-64-caracteres-hexadecimal
+
+4. Atualize server/routes.ts:
+
+No topo, adicione:
+```typescript
+import { encryptCPF, decryptCPF } from './encryption';
+```
+
+Na rota POST /users, onde cria usuário, modifique:
+```typescript
+const newUser = await storage.createUser({
+  name,
+  email,
+  password: hashedPassword,
+  role: role || "colaborador",
+  status: status || "ativo",
+  cpf: cpf ? encryptCPF(cpf) : undefined, // CRIPTOGRAFAR
+  avatar: avatar || DEFAULT_AVATAR,
+});
+```
+
+Na rota PUT /users/:id, adicione antes do updateUser:
+```typescript
+if (cpf) {
+  updateData.cpf = encryptCPF(cpf);
+}
+```
+
+Na rota GET /users/:id, após buscar usuário, modifique o retorno:
+```typescript
+const { password, cpf, ...userData } = user;
+const decryptedUser = {
+  ...userData,
+  cpf: cpf ? decryptCPF(cpf) : undefined
+};
+return res.json(decryptedUser);
+```
+
+Na rota GET /users, modifique:
+```typescript
+const usersWithoutPasswords = users.map(({ password, cpf, ...user }) => ({
+  ...user,
+  cpf: cpf ? decryptCPF(cpf) : undefined
+}));
+```
+
+5. MIGRAÇÃO DE DADOS: Crie arquivo server/migrate-cpf.ts:
+
+```typescript
+import { storage } from './storage';
+import { encryptCPF } from './encryption';
+
+async function migrateCPFs() {
+  console.log('Iniciando migração de CPFs...');
+  
+  const users = await storage.getAllUsers();
+  let migrated = 0;
+  
+  for (const user of users) {
+    if (user.cpf && !user.cpf.includes(':')) { // CPF não criptografado (sem :)
+      const encryptedCPF = encryptCPF(user.cpf);
+      await storage.updateUser(user.id, { cpf: encryptedCPF });
+      console.log(`✓ CPF do usuário ${user.id} criptografado`);
+      migrated++;
+    }
+  }
+  
+  console.log(`\n✓ Migração concluída! ${migrated} CPFs criptografados.`);
+  process.exit(0);
+}
+
+migrateCPFs().catch(console.error);
+```
+
+6. Execute a migração (IMPORTANTE - faça backup do banco antes):
+npx tsx server/migrate-cpf.ts
+
+VALIDAÇÃO:
+1. Crie um novo usuário com CPF - deve aparecer criptografado no banco
+2. Busque o usuário - CPF deve aparecer descriptografado na API
+3. CPFs antigos devem ter sido migrados
+
+Implemente agora.
