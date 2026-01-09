@@ -1,0 +1,97 @@
+Adicione índices no PostgreSQL para melhorar performance em 70%.
+
+TAREFA:
+
+Crie arquivo database/add-indexes.sql com este conteúdo:
+
+```sql
+-- Índice para login (busca por email é muito frequente)
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Índice para busca de reservas por sala e data (usado em disponibilidade)
+CREATE INDEX IF NOT EXISTS idx_reservations_room_date 
+ON reservations(room_id, date, status);
+
+-- Índice para busca de reservas por usuário (histórico do usuário)
+CREATE INDEX IF NOT EXISTS idx_reservations_user_date 
+ON reservations(user_id, date);
+
+-- Índice para recursos por status (filtragem de disponíveis)
+CREATE INDEX IF NOT EXISTS idx_resources_status 
+ON resources(status);
+
+-- Índice composto para verificação de disponibilidade (query mais crítica)
+CREATE INDEX IF NOT EXISTS idx_reservations_availability 
+ON reservations(room_id, date, start_time, end_time) 
+WHERE status != 'cancelled';
+
+-- Índices para auditoria (se implementou)
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp 
+ON audit_logs(timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user 
+ON audit_logs(user_id, timestamp DESC);
+
+-- Comentários explicativos
+COMMENT ON INDEX idx_users_email IS 'Acelera login e busca de usuários por email';
+COMMENT ON INDEX idx_reservations_room_date IS 'Acelera verificação de disponibilidade de salas';
+COMMENT ON INDEX idx_reservations_availability IS 'Índice partial para queries de disponibilidade';
+```
+
+FORMAS DE EXECUTAR:
+
+OPÇÃO 1 - Via psql (se tiver acesso direto ao banco):
+psql -d seu_banco_de_dados -f database/add-indexes.sql
+
+OPÇÃO 2 - Via código Node.js (recomendado para Replit):
+
+Crie arquivo server/add-indexes.ts:
+
+```typescript
+import { db } from './db';
+import { sql } from 'drizzle-orm';
+
+async function addIndexes() {
+  console.log('Criando índices no banco de dados...\n');
+  
+  try {
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    console.log('✓ Índice idx_users_email criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reservations_room_date ON reservations(room_id, date, status)`);
+    console.log('✓ Índice idx_reservations_room_date criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reservations_user_date ON reservations(user_id, date)`);
+    console.log('✓ Índice idx_reservations_user_date criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)`);
+    console.log('✓ Índice idx_resources_status criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reservations_availability ON reservations(room_id, date, start_time, end_time) WHERE status != 'cancelled'`);
+    console.log('✓ Índice idx_reservations_availability criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC)`);
+    console.log('✓ Índice idx_audit_logs_timestamp criado');
+    
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id, timestamp DESC)`);
+    console.log('✓ Índice idx_audit_logs_user criado');
+    
+    console.log('\n✓ Todos os índices foram criados com sucesso!');
+    process.exit(0);
+  } catch (error) {
+    console.error('Erro ao criar índices:', error);
+    process.exit(1);
+  }
+}
+
+addIndexes();
+```
+
+Execute:
+npx tsx server/add-indexes.ts
+
+VALIDAÇÃO:
+Verifique que os índices foram criados:
+SELECT indexname, tablename FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname;
+
+Implemente agora.

@@ -95,6 +95,14 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-09
+- Índices PostgreSQL para melhorar performance em 70%
+  - idx_users_email: Acelera login e busca de usuários
+  - idx_reservations_room_date: Otimiza verificação de disponibilidade
+  - idx_reservations_user_date: Acelera histórico de reservas do usuário
+  - idx_resources_status: Filtragem rápida de recursos disponíveis
+  - idx_reservations_availability: Índice partial para queries de disponibilidade
+  - idx_audit_logs_timestamp/user: Consultas rápidas de auditoria
+  - Script: npx tsx server/add-indexes.ts
 - Otimização de performance na verificação de disponibilidade (N+1 queries)
   - De N queries sequenciais para 3 queries paralelas fixas
   - Tempo de resposta reduzido de ~2s para ~67ms (97% mais rápido)
