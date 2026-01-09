@@ -10,7 +10,7 @@ visitorId: varchar("visitor_id", { length: 50 }).unique(),
   role: varchar("role", { length: 50 }).notNull().default("colaborador"),
   status: varchar("status", { length: 50 }).notNull().default("ativo"),
   avatar: text("avatar"),
-  cpf: varchar("cpf", { length: 20 }),
+  cpf: varchar("cpf", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

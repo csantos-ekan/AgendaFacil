@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const RAW_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(RAW_KEY).digest();
 const ALGORITHM = 'aes-256-gcm';
 
 export function encryptCPF(cpf: string): string {
@@ -9,7 +10,7 @@ export function encryptCPF(cpf: string): string {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(
     ALGORITHM, 
-    Buffer.from(ENCRYPTION_KEY, 'hex'), 
+    ENCRYPTION_KEY, 
     iv
   );
   
@@ -33,7 +34,7 @@ export function decryptCPF(encryptedCPF: string): string {
     
     const decipher = crypto.createDecipheriv(
       ALGORITHM, 
-      Buffer.from(ENCRYPTION_KEY, 'hex'), 
+      ENCRYPTION_KEY, 
       iv
     );
     decipher.setAuthTag(authTag);

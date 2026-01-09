@@ -95,6 +95,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-09
+- Criptografia de CPF conforme LGPD Art. 46
+  - Algoritmo AES-256-GCM com chave derivada via SHA-256
+  - CPFs armazenados criptografados no banco de dados
+  - Descriptografia automática ao retornar dados via API
+  - Migration script (server/migrate-cpf.ts) para criptografar CPFs existentes
+  - Requer ENCRYPTION_KEY configurada como secret
 - Correção de race condition na criação de reservas
   - Uso de transação PostgreSQL com SELECT FOR UPDATE (pessimistic lock)
   - Verificação e criação atômicas dentro da mesma transação
