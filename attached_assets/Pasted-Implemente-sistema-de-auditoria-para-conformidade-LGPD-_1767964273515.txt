@@ -1,0 +1,151 @@
+Implemente sistema de auditoria para conformidade LGPD Art. 48.
+
+TAREFAS:
+
+1. Atualize shared/schema.ts, adicione ao final:
+
+```typescript
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id),
+  action: varchar("action", { length: 50 }).notNull(), // CREATE, READ, UPDATE, DELETE
+  resource: varchar("resource", { length: 50 }).notNull(), // user, room, reservation
+  resourceId: integer("resource_id"),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  userAgent: text("user_agent"),
+  result: varchar("result", { length: 20 }).notNull(), // success, failure
+  details: jsonb("details"),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+```
+
+2. Execute push do schema para criar a tabela:
+npm run db:push
+
+3. Crie arquivo server/audit.ts:
+
+```typescript
+import { db } from './db';
+import { auditLogs } from '../shared/schema';
+import { Request } from 'express';
+
+export interface AuditLogData {
+  userId?: number;
+  action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
+  resource: string;
+  resourceId?: number;
+  result: 'success' | 'failure';
+  details?: any;
+}
+
+export async function logAudit(req: Request, data: AuditLogData) {
+  try {
+    await db.insert(auditLogs).values({
+      timestamp: new Date(),
+      userId: data.userId,
+      action: data.action,
+      resource: data.resource,
+      resourceId: data.resourceId,
+      ipAddress: req.ip || req.socket.remoteAddress,
+      userAgent: req.get('user-agent') || '',
+      result: data.result,
+      details: data.details,
+    });
+  } catch (error) {
+    console.error('Error logging audit:', error);
+  }
+}
+
+export function auditMiddleware(resource: string) {
+  return async (req: Request, res: any, next: any) => {
+    const originalJson = res.json;
+    
+    res.json = function(data: any) {
+      const action = req.method === 'GET' ? 'READ' : 
+                     req.method === 'POST' ? 'CREATE' :
+                     req.method === 'PUT' ? 'UPDATE' : 'DELETE';
+      
+      logAudit(req, {
+        userId: req.userId,
+        action,
+        resource,
+        resourceId: parseInt(req.params.id) || undefined,
+        result: res.statusCode < 400 ? 'success' : 'failure',
+        details: { method: req.method, path: req.path }
+      });
+      
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  };
+}
+```
+
+4. Em server/routes.ts, adicione auditoria nas rotas sensíveis:
+
+No topo:
+```typescript
+import { auditMiddleware } from './audit';
+import { desc } from 'drizzle-orm';
+```
+
+Adicione auditMiddleware nas rotas de dados pessoais (exemplos):
+```typescript
+// Usuários
+router.get("/users/:id", authMiddleware, auditMiddleware('user'), async (req, res) => {
+  // código existente
+});
+
+router.put("/users/:id", authMiddleware, auditMiddleware('user'), async (req, res) => {
+  // código existente
+});
+
+router.delete("/users/:id", authMiddleware, adminMiddleware, auditMiddleware('user'), async (req, res) => {
+  // código existente
+});
+
+// Reservas
+router.post("/reservations", authMiddleware, auditMiddleware('reservation'), async (req, res) => {
+  // código existente
+});
+
+router.delete("/reservations/:id", authMiddleware, auditMiddleware('reservation'), async (req, res) => {
+  // código existente
+});
+```
+
+5. Adicione rota para consultar logs (apenas admin):
+
+```typescript
+router.get("/audit/logs", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { auditLogs } = await import('../shared/schema');
+    
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 50;
+    const offset = (page - 1) * limit;
+    
+    const logs = await db.select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit)
+      .offset(offset);
+    
+    return res.json({ logs, page, limit });
+  } catch (error) {
+    console.error("Get audit logs error:", error);
+    return res.status(500).json({ message: "Erro ao buscar logs" });
+  }
+});
+```
+
+VALIDAÇÃO:
+1. Faça operações (criar usuário, deletar reserva, etc)
+2. Consulte GET /api/audit/logs - deve listar as ações
+3. Logs devem conter: timestamp, userId, action, resource, IP
+
+Implemente agora.

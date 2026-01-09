@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import { desc } from "drizzle-orm";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
@@ -8,6 +9,9 @@ import { parseParticipantEmails } from "./services/email";
 import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
+import { auditMiddleware } from "./audit";
+import { db } from "./db";
+import { auditLogs } from "../shared/schema";
 
 export const router = Router();
 
@@ -96,7 +100,7 @@ router.get("/users", authMiddleware, adminMiddleware, async (_req: Request, res:
   }
 });
 
-router.get("/users/:id", authMiddleware, async (req: Request, res: Response) => {
+router.get("/users/:id", authMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
     const user = await storage.getUser(parseInt(req.params.id));
     if (!user) {
@@ -116,7 +120,7 @@ router.get("/users/:id", authMiddleware, async (req: Request, res: Response) => 
 
 const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiNmMWY1ZjkiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PHBhdGggZD0iTTcgMjAuNjYyVjE5YTQgNCAwIDAgMSA0LTRoMmE0IDQgMCAwIDEgNCA0djEuNjYyIi8+PC9zdmc+";
 
-router.post("/users", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.post("/users", authMiddleware, adminMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
     
@@ -149,7 +153,7 @@ router.post("/users", authMiddleware, adminMiddleware, async (req: Request, res:
   }
 });
 
-router.put("/users/:id", authMiddleware, async (req: Request, res: Response) => {
+router.put("/users/:id", authMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, status, cpf, avatar } = req.body;
     const updateData: any = { name, email, role, status, avatar };
@@ -183,7 +187,7 @@ router.put("/users/:id", authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
-router.delete("/users/:id", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.delete("/users/:id", authMiddleware, adminMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteUser(parseInt(req.params.id));
     if (!deleted) {
@@ -464,7 +468,7 @@ router.get("/reservations/:id", authMiddleware, async (req: Request, res: Respon
   }
 });
 
-router.post("/reservations", authMiddleware, async (req: Request, res: Response) => {
+router.post("/reservations", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
   try {
     const { 
       roomId, userId, roomName, roomLocation, date, startTime, endTime, 
@@ -574,7 +578,7 @@ router.put("/reservations/:id", authMiddleware, async (req: Request, res: Respon
   }
 });
 
-router.delete("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
+router.delete("/reservations/:id", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteReservation(parseInt(req.params.id));
     if (!deleted) {
@@ -600,5 +604,24 @@ router.get("/test/calendar", async (_req: Request, res: Response) => {
       message: 'Erro interno ao testar conexão',
       error: error.message 
     });
+  }
+});
+
+router.get("/audit/logs", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 50;
+    const offset = (page - 1) * limit;
+    
+    const logs = await db.select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit)
+      .offset(offset);
+    
+    return res.json({ logs, page, limit });
+  } catch (error) {
+    console.error("Get audit logs error:", error);
+    return res.status(500).json({ message: "Erro ao buscar logs de auditoria" });
   }
 });

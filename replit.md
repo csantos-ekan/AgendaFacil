@@ -95,6 +95,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-09
+- Sistema de auditoria para conformidade LGPD Art. 48
+  - Tabela audit_logs registra ações em dados pessoais
+  - Captura: timestamp, userId, action, resource, resourceId, IP, userAgent, result
+  - Middleware auditMiddleware aplicado a rotas sensíveis (users, reservations)
+  - Endpoint GET /api/audit/logs para administradores consultarem logs
+  - Paginação com 50 registros por página
 - Criptografia de CPF conforme LGPD Art. 46
   - Algoritmo AES-256-GCM com chave derivada via SHA-256
   - CPFs armazenados criptografados no banco de dados

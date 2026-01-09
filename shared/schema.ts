@@ -67,6 +67,19 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
   }),
 }));
 
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id),
+  action: varchar("action", { length: 50 }).notNull(),
+  resource: varchar("resource", { length: 50 }).notNull(),
+  resourceId: integer("resource_id"),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  userAgent: text("user_agent"),
+  result: varchar("result", { length: 20 }).notNull(),
+  details: jsonb("details"),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Room = typeof rooms.$inferSelect;
@@ -75,3 +88,5 @@ export type Resource = typeof resources.$inferSelect;
 export type InsertResource = typeof resources.$inferInsert;
 export type Reservation = typeof reservations.$inferSelect;
 export type InsertReservation = typeof reservations.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
