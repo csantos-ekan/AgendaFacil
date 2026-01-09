@@ -95,6 +95,10 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-09
+- Correção de race condition na criação de reservas
+  - Uso de transação PostgreSQL com SELECT FOR UPDATE (pessimistic lock)
+  - Verificação e criação atômicas dentro da mesma transação
+  - Reservas simultâneas para mesma sala/horário: apenas uma é aceita
 - Rate limiting para proteção contra ataques de força bruta
   - Limite geral de API: 100 requisições por minuto por IP
   - Limite de login: 5 tentativas por 15 minutos por IP

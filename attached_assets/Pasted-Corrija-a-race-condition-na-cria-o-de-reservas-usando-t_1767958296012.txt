@@ -1,0 +1,115 @@
+Corrija a race condition na criação de reservas usando transação do banco.
+
+CONTEXTO:
+Dois usuários podem criar reservas simultaneamente para mesma sala/horário porque a verificação e a criação não são atômicas.
+
+TAREFA:
+
+Substitua TODA a função POST /reservations no arquivo server/routes.ts por este código:
+
+```typescript
+router.post("/reservations", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { 
+      roomId, userId, roomName, roomLocation, date, startTime, endTime, 
+      status, clientTimezoneOffset, participantEmails, title, description 
+    } = req.body;
+    
+    if (!roomId || !userId || !date || !startTime || !endTime) {
+      return res.status(400).json({ message: "Dados da reserva incompletos" });
+    }
+
+    const timeValidation = validateReservationTime(date, startTime, endTime, clientTimezoneOffset);
+    if (!timeValidation.isValid) {
+      return res.status(400).json({ message: timeValidation.error });
+    }
+
+    // USAR TRANSAÇÃO PARA PREVENIR RACE CONDITION
+    const db = (await import('./db')).db;
+    const { reservations } = await import('../shared/schema');
+    const { eq, and, ne } = await import('drizzle-orm');
+    
+    let newReservation;
+    
+    try {
+      newReservation = await db.transaction(async (tx) => {
+        // Buscar reservas conflitantes COM LOCK
+        const conflicts = await tx.select()
+          .from(reservations)
+          .where(
+            and(
+              eq(reservations.roomId, roomId),
+              eq(reservations.date, date),
+              ne(reservations.status, 'cancelled')
+            )
+          )
+          .for('update'); // Pessimistic lock
+        
+        // Verificar overlap
+        const hasConflict = conflicts.some(r => {
+          return startTime < r.endTime && endTime > r.startTime;
+        });
+        
+        if (hasConflict) {
+          throw new Error('RESERVATION_CONFLICT');
+        }
+        
+        // Criar reserva dentro da transação
+        const [created] = await tx.insert(reservations).values({
+          roomId,
+          userId,
+          roomName: roomName || "",
+          roomLocation: roomLocation || "",
+          date,
+          startTime,
+          endTime,
+          status: status || "confirmed",
+        }).returning();
+        
+        return created;
+      });
+    } catch (error: any) {
+      if (error.message === 'RESERVATION_CONFLICT') {
+        return res.status(409).json({ 
+          message: "Já existe uma reserva para esta sala neste horário" 
+        });
+      }
+      throw error;
+    }
+
+    // Notificar participantes APÓS reserva criada (não bloqueia resposta)
+    const organizer = await storage.getUser(userId);
+    if (organizer?.email) {
+      const externalParticipants = parseParticipantEmails(participantEmails || '');
+      const calendarAttendees = externalParticipants.filter(
+        e => e.toLowerCase() !== organizer.email.toLowerCase()
+      );
+
+      setImmediate(() => {
+        createCalendarEvent({
+          organizerName: organizer.name,
+          organizerEmail: organizer.email,
+          roomName: roomName || '',
+          roomLocation: roomLocation || '',
+          date,
+          startTime,
+          endTime,
+          participants: calendarAttendees,
+          title: title || undefined,
+          description: description || undefined
+        }).catch(err => console.error('Error creating calendar event:', err));
+      });
+    }
+
+    return res.status(201).json(newReservation);
+  } catch (error) {
+    console.error("Create reservation error:", error);
+    return res.status(500).json({ message: "Erro ao criar reserva" });
+  }
+});
+```
+
+VALIDAÇÃO:
+Teste criando 2 reservas simultâneas para mesma sala/horário - apenas uma deve ser aceita.
+
+Implemente agora.

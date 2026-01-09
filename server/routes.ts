@@ -446,7 +446,10 @@ router.get("/reservations/:id", authMiddleware, async (req: Request, res: Respon
 
 router.post("/reservations", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { roomId, userId, roomName, roomLocation, date, startTime, endTime, status, clientTimezoneOffset, participantEmails, title, description } = req.body;
+    const { 
+      roomId, userId, roomName, roomLocation, date, startTime, endTime, 
+      status, clientTimezoneOffset, participantEmails, title, description 
+    } = req.body;
     
     if (!roomId || !userId || !date || !startTime || !endTime) {
       return res.status(400).json({ message: "Dados da reserva incompletos" });
@@ -457,45 +460,66 @@ router.post("/reservations", authMiddleware, async (req: Request, res: Response)
       return res.status(400).json({ message: timeValidation.error });
     }
 
-    const allReservations = await storage.getAllReservations();
-    const hasConflict = allReservations.some(r => {
-      if (r.roomId !== roomId || r.date !== date || r.status === 'cancelled') {
-        return false;
+    const { db } = await import('./db');
+    const { reservations } = await import('../shared/schema');
+    const { eq, and, ne } = await import('drizzle-orm');
+    
+    let newReservation;
+    
+    try {
+      newReservation = await db.transaction(async (tx) => {
+        const conflicts = await tx.select()
+          .from(reservations)
+          .where(
+            and(
+              eq(reservations.roomId, roomId),
+              eq(reservations.date, date),
+              ne(reservations.status, 'cancelled')
+            )
+          )
+          .for('update');
+        
+        const hasConflict = conflicts.some(r => {
+          return startTime < r.endTime && endTime > r.startTime;
+        });
+        
+        if (hasConflict) {
+          throw new Error('RESERVATION_CONFLICT');
+        }
+        
+        const [created] = await tx.insert(reservations).values({
+          roomId,
+          userId,
+          roomName: roomName || "",
+          roomLocation: roomLocation || "",
+          date,
+          startTime,
+          endTime,
+          status: status || "confirmed",
+        }).returning();
+        
+        return created;
+      });
+    } catch (error: any) {
+      if (error.message === 'RESERVATION_CONFLICT') {
+        return res.status(409).json({ 
+          message: "Já existe uma reserva para esta sala neste horário" 
+        });
       }
-      const existingStart = r.startTime;
-      const existingEnd = r.endTime;
-      const newStart = startTime;
-      const newEnd = endTime;
-      return (newStart < existingEnd && newEnd > existingStart);
-    });
-
-    if (hasConflict) {
-      return res.status(409).json({ message: "Já existe uma reserva para esta sala neste horário" });
+      throw error;
     }
 
-    const newReservation = await storage.createReservation({
-      roomId,
-      userId,
-      roomName: roomName || "",
-      roomLocation: roomLocation || "",
-      date,
-      startTime,
-      endTime,
-      status: status || "confirmed",
-    });
-
     const organizer = await storage.getUser(userId);
-    const organizerName = organizer?.name || 'Usuário';
-    const organizerEmail = organizer?.email || '';
-    const externalParticipants = parseParticipantEmails(participantEmails || '');
-    
-    const calendarAttendees = externalParticipants.filter(e => e.toLowerCase() !== organizerEmail.toLowerCase());
+    if (organizer?.email) {
+      const externalParticipants = parseParticipantEmails(participantEmails || '');
+      const calendarAttendees = externalParticipants.filter(
+        e => e.toLowerCase() !== organizer.email.toLowerCase()
+      );
 
-    if (organizerEmail) {
       setImmediate(() => {
         createCalendarEvent({
-          organizerName,
-          organizerEmail,
+          organizerName: organizer.name,
+          organizerEmail: organizer.email,
           roomName: roomName || '',
           roomLocation: roomLocation || '',
           date,
@@ -506,8 +530,6 @@ router.post("/reservations", authMiddleware, async (req: Request, res: Response)
           description: description || undefined
         }).catch(err => console.error('Error creating calendar event:', err));
       });
-    } else {
-      console.log('Skipping calendar: organizer email not found');
     }
 
     return res.status(201).json(newReservation);
