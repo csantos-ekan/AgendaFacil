@@ -94,6 +94,12 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-09
+- Rate limiting para proteção contra ataques de força bruta
+  - Limite geral de API: 100 requisições por minuto por IP
+  - Limite de login: 5 tentativas por 15 minutos por IP
+  - Retorna HTTP 429 quando limite é excedido
+
 ### 2026-01-08
 - Implementação de autenticação JWT segura
   - Token JWT assinado com secret configurável (JWT_SECRET)

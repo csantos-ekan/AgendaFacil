@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
@@ -8,6 +9,15 @@ import { createCalendarEvent, testCalendarConnection } from "./services/calendar
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 
 export const router = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
 
 router.get("/auth/me", authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -29,7 +39,7 @@ router.get("/auth/me", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-router.post("/auth/login", async (req: Request, res: Response) => {
+router.post("/auth/login", loginLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     
