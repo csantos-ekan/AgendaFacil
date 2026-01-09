@@ -1,0 +1,91 @@
+Otimize o problema de N+1 queries na verificação de disponibilidade.
+
+CONTEXTO:
+Atualmente o sistema faz 1 query por sala para verificar disponibilidade. Para 20 salas = 20 queries.
+
+TAREFA:
+
+Substitua TODA a função checkAllRoomsAvailability em server/availability.ts por:
+
+```typescript
+export async function checkAllRoomsAvailability(
+  date: string,
+  startTime: string,
+  endTime: string
+): Promise<RoomAvailabilityResult[]> {
+  // Buscar tudo de uma vez - 3 queries fixas em vez de N queries
+  const [rooms, allReservations, allUsers] = await Promise.all([
+    storage.getAllRooms(),
+    storage.getAllReservations(),
+    storage.getAllUsers()
+  ]);
+  
+  // Filtrar reservas do dia em memória (muito mais rápido)
+  const dayReservations = allReservations.filter(
+    r => r.date === date && r.status !== 'cancelled'
+  );
+  
+  // Criar mapa de usuários para lookup O(1) em vez de O(n)
+  const usersMap = new Map(allUsers.map(u => [u.id, u]));
+  
+  const requestedStart = timeToMinutes(startTime);
+  const requestedEnd = timeToMinutes(endTime);
+  
+  // Processar todas as salas em memória (super rápido)
+  return rooms.map(room => {
+    const roomReservations = dayReservations
+      .filter(r => r.roomId === room.id)
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+    let hasConflict = false;
+    let nextAvailableTime: string | null = null;
+    let reservedByUserId: number | null = null;
+
+    for (const reservation of roomReservations) {
+      const resStart = timeToMinutes(reservation.startTime);
+      const resEnd = timeToMinutes(reservation.endTime);
+
+      if (requestedStart < resEnd && requestedEnd > resStart) {
+        hasConflict = true;
+        reservedByUserId = reservation.userId;
+        
+        let candidateTime = resEnd;
+        
+        for (const futureRes of roomReservations) {
+          const futureStart = timeToMinutes(futureRes.startTime);
+          const futureEnd = timeToMinutes(futureRes.endTime);
+          
+          if (futureStart <= candidateTime && futureEnd > candidateTime) {
+            candidateTime = futureEnd;
+          }
+        }
+        
+        nextAvailableTime = minutesToTime(candidateTime);
+        break;
+      }
+    }
+
+    const reservedByName = reservedByUserId 
+      ? usersMap.get(reservedByUserId)?.name || null
+      : null;
+
+    return {
+      roomId: room.id,
+      isAvailable: !hasConflict,
+      nextAvailableTime,
+      reservedByName
+    };
+  });
+}
+```
+
+GANHO ESPERADO:
+- De N queries para 3 queries fixas
+- Redução de 90% no tempo para 20 salas
+- Tempo passa de ~2s para ~200ms
+
+VALIDAÇÃO:
+Teste a rota GET /api/rooms/availability?date=2026-01-10&startTime=10:00&endTime=11:00
+Deve responder em menos de 300ms.
+
+Implemente agora.

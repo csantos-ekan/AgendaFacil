@@ -82,13 +82,63 @@ export async function checkAllRoomsAvailability(
   startTime: string,
   endTime: string
 ): Promise<RoomAvailabilityResult[]> {
-  const rooms = await storage.getAllRooms();
-  const results: RoomAvailabilityResult[] = [];
+  const [rooms, allReservations, allUsers] = await Promise.all([
+    storage.getAllRooms(),
+    storage.getAllReservations(),
+    storage.getAllUsers()
+  ]);
+  
+  const dayReservations = allReservations.filter(
+    r => r.date === date && r.status !== 'cancelled'
+  );
+  
+  const usersMap = new Map(allUsers.map(u => [u.id, u]));
+  
+  const requestedStart = timeToMinutes(startTime);
+  const requestedEnd = timeToMinutes(endTime);
+  
+  return rooms.map(room => {
+    const roomReservations = dayReservations
+      .filter(r => r.roomId === room.id)
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
-  for (const room of rooms) {
-    const availability = await checkRoomAvailability(room.id, date, startTime, endTime);
-    results.push(availability);
-  }
+    let hasConflict = false;
+    let nextAvailableTime: string | null = null;
+    let reservedByUserId: number | null = null;
 
-  return results;
+    for (const reservation of roomReservations) {
+      const resStart = timeToMinutes(reservation.startTime);
+      const resEnd = timeToMinutes(reservation.endTime);
+
+      if (requestedStart < resEnd && requestedEnd > resStart) {
+        hasConflict = true;
+        reservedByUserId = reservation.userId;
+        
+        let candidateTime = resEnd;
+        
+        for (const futureRes of roomReservations) {
+          const futureStart = timeToMinutes(futureRes.startTime);
+          const futureEnd = timeToMinutes(futureRes.endTime);
+          
+          if (futureStart <= candidateTime && futureEnd > candidateTime) {
+            candidateTime = futureEnd;
+          }
+        }
+        
+        nextAvailableTime = minutesToTime(candidateTime);
+        break;
+      }
+    }
+
+    const reservedByName = reservedByUserId 
+      ? usersMap.get(reservedByUserId)?.name || null
+      : null;
+
+    return {
+      roomId: room.id,
+      isAvailable: !hasConflict,
+      nextAvailableTime,
+      reservedByName
+    };
+  });
 }
