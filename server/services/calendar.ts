@@ -156,12 +156,12 @@ function buildDateTime(date: string, time: string): string {
   return `${date}T${time}:00`;
 }
 
-export async function createCalendarEvent(data: CalendarEventData): Promise<boolean> {
+export async function createCalendarEvent(data: CalendarEventData): Promise<string | null> {
   const auth = getCalendarAuth();
   
   if (!auth) {
     console.log('Calendar event creation skipped: Google Calendar not configured');
-    return false;
+    return null;
   }
 
   try {
@@ -202,9 +202,38 @@ export async function createCalendarEvent(data: CalendarEventData): Promise<bool
     });
 
     console.log(`Calendar event created successfully: ${response.data.id}`);
-    return true;
+    return response.data.id || null;
   } catch (error) {
     console.error('Error creating calendar event:', error);
+    return null;
+  }
+}
+
+export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
+  const auth = getCalendarAuth();
+  
+  if (!auth) {
+    console.log('Calendar event deletion skipped: Google Calendar not configured');
+    return false;
+  }
+
+  try {
+    const calendar = google.calendar({ version: 'v3', auth });
+    
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: eventId,
+      sendUpdates: 'all'
+    });
+
+    console.log(`Calendar event deleted successfully: ${eventId}`);
+    return true;
+  } catch (error: any) {
+    if (error.code === 404 || error.code === 410) {
+      console.log(`Calendar event not found (may have been already deleted): ${eventId}`);
+      return true;
+    }
+    console.error('Error deleting calendar event:', error);
     return false;
   }
 }

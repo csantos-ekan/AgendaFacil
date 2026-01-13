@@ -45,6 +45,7 @@ export const reservations = pgTable("reservations", {
   startTime: varchar("start_time", { length: 10 }).notNull(),
   endTime: varchar("end_time", { length: 10 }).notNull(),
   status: varchar("status", { length: 50 }).notNull().default("confirmed"),
+  calendarEventId: varchar("calendar_event_id", { length: 255 }),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
