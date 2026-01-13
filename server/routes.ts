@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
 import { parseParticipantEmails } from "./services/email";
-import { createCalendarEvent, testCalendarConnection } from "./services/calendar";
+import { createCalendarEvent, deleteCalendarEvent, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
@@ -604,19 +604,28 @@ router.post("/reservations", authMiddleware, auditMiddleware('reservation'), asy
         e => e.toLowerCase() !== organizer.email.toLowerCase()
       );
 
-      setImmediate(() => {
-        createCalendarEvent({
-          organizerName: organizer.name,
-          organizerEmail: organizer.email,
-          roomName: roomName || '',
-          roomLocation: roomLocation || '',
-          date,
-          startTime,
-          endTime,
-          participants: calendarAttendees,
-          title: title || undefined,
-          description: description || undefined
-        }).catch(err => console.error('Error creating calendar event:', err));
+      setImmediate(async () => {
+        try {
+          const eventId = await createCalendarEvent({
+            organizerName: organizer.name,
+            organizerEmail: organizer.email,
+            roomName: roomName || '',
+            roomLocation: roomLocation || '',
+            date,
+            startTime,
+            endTime,
+            participants: calendarAttendees,
+            title: title || undefined,
+            description: description || undefined
+          });
+          
+          if (eventId && newReservation?.id) {
+            await storage.updateReservation(newReservation.id, { calendarEventId: eventId });
+            console.log(`Calendar event ID ${eventId} saved to reservation ${newReservation.id}`);
+          }
+        } catch (err) {
+          console.error('Error creating calendar event:', err);
+        }
       });
     }
 
@@ -644,7 +653,25 @@ router.put("/reservations/:id", authMiddleware, async (req: Request, res: Respon
 
 router.delete("/reservations/:id", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
   try {
-    const deleted = await storage.deleteReservation(parseInt(req.params.id));
+    const reservationId = parseInt(req.params.id);
+    
+    const reservation = await storage.getReservation(reservationId);
+    if (!reservation) {
+      return res.status(404).json({ message: "Reserva não encontrada" });
+    }
+    
+    if (reservation.calendarEventId) {
+      setImmediate(async () => {
+        try {
+          await deleteCalendarEvent(reservation.calendarEventId!);
+          console.log(`Calendar event ${reservation.calendarEventId} deleted for reservation ${reservationId}`);
+        } catch (err) {
+          console.error('Error deleting calendar event:', err);
+        }
+      });
+    }
+    
+    const deleted = await storage.deleteReservation(reservationId);
     if (!deleted) {
       return res.status(404).json({ message: "Reserva não encontrada" });
     }
