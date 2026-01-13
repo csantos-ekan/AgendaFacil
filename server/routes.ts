@@ -638,7 +638,27 @@ router.post("/reservations", authMiddleware, auditMiddleware('reservation'), asy
 
 router.put("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const updatedReservation = await storage.updateReservation(parseInt(req.params.id), req.body);
+    const reservationId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    // If cancelling, first get the reservation to check for calendar event
+    if (status === 'cancelled') {
+      const existingReservation = await storage.getReservation(reservationId);
+      if (existingReservation?.calendarEventId) {
+        try {
+          const calendarDeleted = await deleteCalendarEvent(existingReservation.calendarEventId);
+          if (calendarDeleted) {
+            console.log(`Calendar event ${existingReservation.calendarEventId} deleted for cancelled reservation ${reservationId}`);
+          } else {
+            console.warn(`Failed to delete calendar event ${existingReservation.calendarEventId} - participants may not be notified`);
+          }
+        } catch (err) {
+          console.error('Error deleting calendar event on cancellation:', err);
+        }
+      }
+    }
+    
+    const updatedReservation = await storage.updateReservation(reservationId, req.body);
     
     if (!updatedReservation) {
       return res.status(404).json({ message: "Reserva não encontrada" });
