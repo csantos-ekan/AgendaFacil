@@ -94,6 +94,13 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-13
+- Notificação de cancelamento para participantes via Google Calendar
+  - Campo calendarEventId adicionado ao schema de reservas
+  - Evento do Google Calendar é salvo ao criar reserva
+  - Ao cancelar, o evento é deletado do Calendar (Google notifica participantes automaticamente)
+  - Operações síncronas garantem confiabilidade da notificação
+
 ### 2026-01-09
 - Índices PostgreSQL para melhorar performance em 70%
   - idx_users_email: Acelera login e busca de usuários
