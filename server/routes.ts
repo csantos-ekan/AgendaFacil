@@ -647,32 +647,46 @@ function generateSeriesDates(recurrenceRule: {
   const startDate = new Date(recurrenceRule.startDate + 'T12:00:00');
   const endDate = new Date(recurrenceRule.endDate + 'T12:00:00');
   
-  let currentDate = new Date(startDate);
-  
-  while (currentDate <= endDate && dates.length < 365) {
-    if (recurrenceRule.repeatPeriod === 'week') {
-      if (recurrenceRule.weekDays.includes(currentDate.getDay())) {
-        dates.push(currentDate.toISOString().split('T')[0]);
+  if (recurrenceRule.repeatPeriod === 'week') {
+    const weekDays = recurrenceRule.weekDays.sort((a, b) => a - b);
+    if (weekDays.length === 0) return dates;
+    
+    let currentWeekStart = new Date(startDate);
+    const startDayOfWeek = currentWeekStart.getDay();
+    currentWeekStart.setDate(currentWeekStart.getDate() - startDayOfWeek);
+    
+    while (currentWeekStart <= endDate && dates.length < 365) {
+      for (const dayOfWeek of weekDays) {
+        const dateInWeek = new Date(currentWeekStart);
+        dateInWeek.setDate(dateInWeek.getDate() + dayOfWeek);
+        
+        if (dateInWeek >= startDate && dateInWeek <= endDate) {
+          dates.push(dateInWeek.toISOString().split('T')[0]);
+        }
       }
-      currentDate.setDate(currentDate.getDate() + 1);
-      
-      const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek === 0 && dates.length > 0) {
-        currentDate.setDate(currentDate.getDate() + (recurrenceRule.repeatEvery - 1) * 7);
-      }
-    } else if (recurrenceRule.repeatPeriod === 'day') {
+      currentWeekStart.setDate(currentWeekStart.getDate() + (7 * recurrenceRule.repeatEvery));
+    }
+  } else if (recurrenceRule.repeatPeriod === 'day') {
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate && dates.length < 365) {
       dates.push(currentDate.toISOString().split('T')[0]);
       currentDate.setDate(currentDate.getDate() + recurrenceRule.repeatEvery);
-    } else if (recurrenceRule.repeatPeriod === 'month') {
+    }
+  } else if (recurrenceRule.repeatPeriod === 'month') {
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate && dates.length < 365) {
       dates.push(currentDate.toISOString().split('T')[0]);
       currentDate.setMonth(currentDate.getMonth() + recurrenceRule.repeatEvery);
-    } else if (recurrenceRule.repeatPeriod === 'year') {
+    }
+  } else if (recurrenceRule.repeatPeriod === 'year') {
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate && dates.length < 365) {
       dates.push(currentDate.toISOString().split('T')[0]);
       currentDate.setFullYear(currentDate.getFullYear() + recurrenceRule.repeatEvery);
     }
   }
   
-  return dates;
+  return dates.sort();
 }
 
 router.post("/reservations/series", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
@@ -686,10 +700,31 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
       return res.status(400).json({ message: "Dados da série incompletos" });
     }
 
-    const { startDate, endDate, startTime, endTime, repeatEvery, repeatPeriod, weekDays } = recurrenceRule;
+    const { startDate, endDate, startTime, endTime, repeatEvery, repeatPeriod, weekDays, isAllDay } = recurrenceRule;
     
     if (!startDate || !endDate || !startTime || !endTime) {
       return res.status(400).json({ message: "Configuração de recorrência incompleta" });
+    }
+
+    const startD = new Date(startDate + 'T00:00:00');
+    const endD = new Date(endDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startD < today) {
+      return res.status(400).json({ message: "A data inicial não pode ser no passado" });
+    }
+
+    if (endD <= startD) {
+      return res.status(400).json({ message: "A data final deve ser posterior à data inicial" });
+    }
+
+    if (!isAllDay && endTime <= startTime) {
+      return res.status(400).json({ message: "A hora final deve ser maior que a hora inicial" });
+    }
+
+    if (repeatPeriod === 'week' && (!weekDays || weekDays.length === 0)) {
+      return res.status(400).json({ message: "Selecione ao menos um dia da semana" });
     }
 
     const seriesDates = generateSeriesDates({

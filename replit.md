@@ -96,6 +96,17 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-22
+- Reservas recorrentes (série)
+  - Botão "Série" no modal de reserva ao lado do nome da sala
+  - Configurações: data inicial/final, hora início/fim, "dia inteiro"
+  - Opção "Repetir a cada X dias/semanas/meses/anos"
+  - Seleção de dias da semana (quando período = semana)
+  - Validações: data final > inicial, hora final > inicial, mínimo 1 dia selecionado
+  - POST /api/reservations/series cria múltiplas reservas vinculadas por seriesId
+  - Validação de conflitos para toda a série antes de criar
+  - Limite de 100 reservas por série
+  - Campos seriesId e recurrenceRule no schema de reservas
+  - Sem integração com Google Calendar nesta fase
 - Gerenciamento de reservas para administradores
   - Nova tela "Gerenciar Reservas" no menu de administração
   - GET /api/admin/reservations com filtros por sala, data e ordenação
@@ -104,6 +115,7 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
   - Admin pode cancelar qualquer reserva com notificação automática via Google Calendar
   - Campos cancelledAt e cancelledBy para rastreio de cancelamentos
   - Filtros por sala e data, ordenação por data mais recente/antiga
+  - Status "Concluída" para reservas passadas, botão cancelar oculto
 
 ### 2026-01-13
 - Notificação de cancelamento para participantes via Google Calendar
