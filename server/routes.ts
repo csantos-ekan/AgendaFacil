@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import { desc } from "drizzle-orm";
+import { desc, eq, and, asc } from "drizzle-orm";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
@@ -11,7 +11,7 @@ import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
 import { db } from "./db";
-import { auditLogs } from "../shared/schema";
+import { auditLogs, reservations, users, rooms } from "../shared/schema";
 
 export const router = Router();
 
@@ -736,5 +736,98 @@ router.get("/audit/logs", authMiddleware, adminMiddleware, async (req: Request, 
   } catch (error) {
     console.error("Get audit logs error:", error);
     return res.status(500).json({ message: "Erro ao buscar logs de auditoria" });
+  }
+});
+
+router.get("/admin/reservations", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { roomId, date, sortBy = 'date', sortOrder = 'desc' } = req.query;
+    
+    let conditions = [];
+    if (roomId) {
+      conditions.push(eq(reservations.roomId, parseInt(roomId as string)));
+    }
+    if (date) {
+      conditions.push(eq(reservations.date, date as string));
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const allReservations = await db
+      .select({
+        id: reservations.id,
+        roomId: reservations.roomId,
+        roomName: reservations.roomName,
+        roomLocation: reservations.roomLocation,
+        date: reservations.date,
+        startTime: reservations.startTime,
+        endTime: reservations.endTime,
+        status: reservations.status,
+        calendarEventId: reservations.calendarEventId,
+        cancelledAt: reservations.cancelledAt,
+        cancelledBy: reservations.cancelledBy,
+        timestamp: reservations.timestamp,
+        userId: reservations.userId,
+        userName: users.name,
+        userEmail: users.email,
+      })
+      .from(reservations)
+      .leftJoin(users, eq(reservations.userId, users.id))
+      .where(whereClause)
+      .orderBy(
+        sortOrder === 'asc' 
+          ? asc(sortBy === 'date' ? reservations.date : reservations.startTime)
+          : desc(sortBy === 'date' ? reservations.date : reservations.startTime),
+        sortOrder === 'asc' ? asc(reservations.startTime) : desc(reservations.startTime)
+      );
+    
+    return res.json(allReservations);
+  } catch (error) {
+    console.error("Get admin reservations error:", error);
+    return res.status(500).json({ message: "Erro ao buscar reservas" });
+  }
+});
+
+router.put("/admin/reservations/:id/cancel", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const reservationId = parseInt(req.params.id);
+    const adminUserId = req.userId;
+    
+    const reservation = await storage.getReservation(reservationId);
+    if (!reservation) {
+      return res.status(404).json({ message: "Reserva não encontrada" });
+    }
+    
+    if (reservation.status === 'cancelled') {
+      return res.status(400).json({ message: "Reserva já está cancelada" });
+    }
+    
+    if (reservation.calendarEventId) {
+      try {
+        const calendarDeleted = await deleteCalendarEvent(reservation.calendarEventId);
+        if (calendarDeleted) {
+          console.log(`Calendar event ${reservation.calendarEventId} deleted by admin for reservation ${reservationId}`);
+        }
+      } catch (err) {
+        console.error('Error deleting calendar event on admin cancellation:', err);
+      }
+    }
+    
+    const updatedReservation = await db
+      .update(reservations)
+      .set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: adminUserId,
+      })
+      .where(eq(reservations.id, reservationId))
+      .returning();
+    
+    console.log(`Reservation ${reservationId} cancelled by admin ${adminUserId}`);
+    
+    return res.json(updatedReservation[0]);
+  } catch (error) {
+    console.error("Admin cancel reservation error:", error);
+    return res.status(500).json({ message: "Erro ao cancelar reserva" });
   }
 });

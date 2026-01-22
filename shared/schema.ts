@@ -46,6 +46,8 @@ export const reservations = pgTable("reservations", {
   endTime: varchar("end_time", { length: 10 }).notNull(),
   status: varchar("status", { length: 50 }).notNull().default("confirmed"),
   calendarEventId: varchar("calendar_event_id", { length: 255 }),
+  cancelledAt: timestamp("cancelled_at"),
+  cancelledBy: integer("cancelled_by").references(() => users.id),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
