@@ -48,6 +48,8 @@ export const reservations = pgTable("reservations", {
   calendarEventId: varchar("calendar_event_id", { length: 255 }),
   cancelledAt: timestamp("cancelled_at"),
   cancelledBy: integer("cancelled_by").references(() => users.id),
+  seriesId: varchar("series_id", { length: 50 }),
+  recurrenceRule: jsonb("recurrence_rule"),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 

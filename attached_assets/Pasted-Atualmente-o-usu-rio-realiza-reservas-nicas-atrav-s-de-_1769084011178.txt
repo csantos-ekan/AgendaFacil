@@ -1,0 +1,88 @@
+Atualmente o usuário realiza reservas únicas através de um modal
+chamado "Confirmar Reserva".
+
+Objetivo:
+Adicionar suporte a reservas recorrentes (série de reservas),
+com experiência similar à recorrência existente no Outlook,
+sem alterar o esquema de cores atual do sistema.
+
+Alterações de interface (UI):
+- No modal "Confirmar Reserva":
+  - Adicionar um botão chamado "Série"
+  - O botão deve ficar ao lado direito do nome da sala
+  - Ao clicar no botão "Série":
+    - Expandir o modal (sem abrir outro modal)
+    - Exibir as opções de configuração de recorrência
+
+Requisitos de UX/UI:
+- Manter o design consistente com o sistema atual
+- Utilizar os mesmos componentes visuais existentes
+- NÃO alterar o esquema de cores
+- A área de recorrência deve ser colapsável (expandir/recolher)
+- Interface clara, inspirada no comportamento do Outlook
+
+Configurações de recorrência disponíveis:
+- Data de início
+- Hora de início
+- Hora de fim
+- Checkbox "Dia inteiro"
+  - Quando marcado:
+    - Ocultar ou desabilitar campos de hora
+- Opção "Repetir a cada":
+  - Campo numérico (mínimo 1, máximo 30)
+  - Campo de período:
+    - Dia
+    - Semana
+    - Mês
+    - Ano
+- Seleção de dias da semana (quando período = semana):
+  - Botões ou checkboxes:
+    - S (Segunda)
+    - T (Terça)
+    - Q (Quarta)
+    - Q (Quinta)
+    - S (Sexta)
+    - S (Sábado)
+    - D (Domingo)
+- Data final da recorrência ("Até")
+
+Comportamento funcional:
+- Se a opção "Série" NÃO estiver ativada:
+  - Criar uma reserva única (comportamento atual)
+- Se a opção "Série" estiver ativada:
+  - Criar múltiplas reservas com base nas regras definidas
+  - Todas as reservas devem:
+    - Utilizar a mesma sala
+    - Respeitar o horário definido
+    - Ser vinculadas a uma mesma série (group_id ou similar)
+
+Validações obrigatórias:
+- Data final da recorrência deve ser maior que a data inicial
+- Hora final deve ser maior que a hora inicial
+- Ao menos um dia da semana deve ser selecionado quando período = semana
+- Não permitir recorrência sem limite final ("até")
+
+Regras de conflito:
+- Caso algum horário da série esteja indisponível:
+  - Bloquear a criação da série
+  - Informar ao usuário quais datas possuem conflito
+- Não criar reservas parciais
+
+Backend:
+- Criar estrutura para armazenar:
+  - Identificador da série
+  - Regra de recorrência
+  - Reservas individuais geradas
+- Garantir integridade e consistência das reservas
+
+Escopo:
+- Implementar frontend e backend necessários
+- Não alterar cores ou identidade visual
+- Não integrar com Google Calendar neste momento
+- Não implementar edição de série nesta fase
+- Cancelamento de série será tratado futuramente
+
+Resultado esperado:
+- Usuário consegue criar reservas recorrentes de forma clara e intuitiva
+- Experiência semelhante à recorrência do Outlook
+- Sistema mantém organização e evita conflitos de horário

@@ -180,39 +180,76 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmBooking = async (details: { participantEmails: string; title?: string; description?: string }) => {
+  const handleConfirmBooking = async (details: { 
+    participantEmails: string; 
+    title?: string; 
+    description?: string;
+    isSeries?: boolean;
+    recurrenceRule?: {
+      startDate: string;
+      startTime: string;
+      endTime: string;
+      isAllDay: boolean;
+      repeatEvery: number;
+      repeatPeriod: 'day' | 'week' | 'month' | 'year';
+      weekDays: number[];
+      endDate: string;
+    };
+  }) => {
     if (!selectedRoom || !currentUser) return;
 
-    const validation = validateReservationTime(filters.date, filters.startTime, filters.endTime);
-    if (!validation.isValid) {
-      setErrorMessage(validation.error);
-      setTimeout(() => setErrorMessage(null), 5000);
-      return;
-    }
-
     try {
-      await api.reservations.create({
-        roomId: parseInt(selectedRoom.id),
-        userId: parseInt(currentUser.id),
-        roomName: selectedRoom.name,
-        roomLocation: selectedRoom.location,
-        date: filters.date,
-        startTime: filters.startTime,
-        endTime: filters.endTime,
-        status: 'confirmed',
-        participantEmails: details.participantEmails,
-        title: details.title,
-        description: details.description,
-      });
+      if (details.isSeries && details.recurrenceRule) {
+        const result = await api.reservations.createSeries({
+          roomId: parseInt(selectedRoom.id),
+          userId: parseInt(currentUser.id),
+          roomName: selectedRoom.name,
+          roomLocation: selectedRoom.location,
+          recurrenceRule: details.recurrenceRule,
+          participantEmails: details.participantEmails,
+          title: details.title,
+          description: details.description,
+        });
 
-      setIsModalOpen(false);
-      setSelectedRoom(null);
-      
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
+        setIsModalOpen(false);
+        setSelectedRoom(null);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 4000);
 
-      loadReservations();
-      setActiveTab('reservations');
+        loadReservations();
+        setActiveTab('reservations');
+      } else {
+        const validation = validateReservationTime(filters.date, filters.startTime, filters.endTime);
+        if (!validation.isValid) {
+          setErrorMessage(validation.error);
+          setTimeout(() => setErrorMessage(null), 5000);
+          return;
+        }
+
+        await api.reservations.create({
+          roomId: parseInt(selectedRoom.id),
+          userId: parseInt(currentUser.id),
+          roomName: selectedRoom.name,
+          roomLocation: selectedRoom.location,
+          date: filters.date,
+          startTime: filters.startTime,
+          endTime: filters.endTime,
+          status: 'confirmed',
+          participantEmails: details.participantEmails,
+          title: details.title,
+          description: details.description,
+        });
+
+        setIsModalOpen(false);
+        setSelectedRoom(null);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+
+        loadReservations();
+        setActiveTab('reservations');
+      }
     } catch (error: any) {
       const message = error?.message || 'Erro ao criar reserva. Tente novamente.';
       setErrorMessage(message);

@@ -264,6 +264,32 @@ export const api = {
       const response = await fetch(`${API_BASE}/reservations/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       return handleResponse(response);
     },
+    createSeries: async (data: {
+      roomId: number;
+      userId: number;
+      roomName: string;
+      roomLocation: string;
+      recurrenceRule: {
+        startDate: string;
+        startTime: string;
+        endTime: string;
+        isAllDay: boolean;
+        repeatEvery: number;
+        repeatPeriod: 'day' | 'week' | 'month' | 'year';
+        weekDays: number[];
+        endDate: string;
+      };
+      participantEmails?: string;
+      title?: string;
+      description?: string;
+    }): Promise<{ message: string; count: number; dates: string[] }> => {
+      const response = await fetch(`${API_BASE}/reservations/series`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(response);
+    },
   },
 
   admin: {

@@ -636,6 +636,149 @@ router.post("/reservations", authMiddleware, auditMiddleware('reservation'), asy
   }
 });
 
+function generateSeriesDates(recurrenceRule: {
+  startDate: string;
+  endDate: string;
+  repeatEvery: number;
+  repeatPeriod: 'day' | 'week' | 'month' | 'year';
+  weekDays: number[];
+}): string[] {
+  const dates: string[] = [];
+  const startDate = new Date(recurrenceRule.startDate + 'T12:00:00');
+  const endDate = new Date(recurrenceRule.endDate + 'T12:00:00');
+  
+  let currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate && dates.length < 365) {
+    if (recurrenceRule.repeatPeriod === 'week') {
+      if (recurrenceRule.weekDays.includes(currentDate.getDay())) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+      
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek === 0 && dates.length > 0) {
+        currentDate.setDate(currentDate.getDate() + (recurrenceRule.repeatEvery - 1) * 7);
+      }
+    } else if (recurrenceRule.repeatPeriod === 'day') {
+      dates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + recurrenceRule.repeatEvery);
+    } else if (recurrenceRule.repeatPeriod === 'month') {
+      dates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setMonth(currentDate.getMonth() + recurrenceRule.repeatEvery);
+    } else if (recurrenceRule.repeatPeriod === 'year') {
+      dates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setFullYear(currentDate.getFullYear() + recurrenceRule.repeatEvery);
+    }
+  }
+  
+  return dates;
+}
+
+router.post("/reservations/series", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
+  try {
+    const { 
+      roomId, userId, roomName, roomLocation, 
+      recurrenceRule, participantEmails, title, description 
+    } = req.body;
+    
+    if (!roomId || !userId || !recurrenceRule) {
+      return res.status(400).json({ message: "Dados da série incompletos" });
+    }
+
+    const { startDate, endDate, startTime, endTime, repeatEvery, repeatPeriod, weekDays } = recurrenceRule;
+    
+    if (!startDate || !endDate || !startTime || !endTime) {
+      return res.status(400).json({ message: "Configuração de recorrência incompleta" });
+    }
+
+    const seriesDates = generateSeriesDates({
+      startDate,
+      endDate,
+      repeatEvery: repeatEvery || 1,
+      repeatPeriod: repeatPeriod || 'week',
+      weekDays: weekDays || []
+    });
+
+    if (seriesDates.length === 0) {
+      return res.status(400).json({ message: "Nenhuma data encontrada para a recorrência configurada" });
+    }
+
+    if (seriesDates.length > 100) {
+      return res.status(400).json({ message: "A série não pode ter mais de 100 reservas. Reduza o período." });
+    }
+
+    const { db } = await import('./db');
+    const { reservations } = await import('../shared/schema');
+    const { eq, and, ne, inArray } = await import('drizzle-orm');
+    
+    const conflictingDates: string[] = [];
+    
+    await db.transaction(async (tx) => {
+      const existingReservations = await tx.select()
+        .from(reservations)
+        .where(
+          and(
+            eq(reservations.roomId, roomId),
+            inArray(reservations.date, seriesDates),
+            ne(reservations.status, 'cancelled')
+          )
+        )
+        .for('update');
+
+      for (const dateStr of seriesDates) {
+        const dayConflicts = existingReservations.filter(r => r.date === dateStr);
+        const hasConflict = dayConflicts.some(r => 
+          startTime < r.endTime && endTime > r.startTime
+        );
+        if (hasConflict) {
+          conflictingDates.push(dateStr);
+        }
+      }
+
+      if (conflictingDates.length > 0) {
+        const formattedDates = conflictingDates.slice(0, 5).map(d => {
+          const [y, m, day] = d.split('-');
+          return `${day}/${m}/${y}`;
+        });
+        const moreText = conflictingDates.length > 5 ? ` e mais ${conflictingDates.length - 5} datas` : '';
+        throw new Error(`SERIES_CONFLICT:Conflitos encontrados: ${formattedDates.join(', ')}${moreText}`);
+      }
+
+      const seriesId = `series_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      for (const dateStr of seriesDates) {
+        await tx.insert(reservations).values({
+          roomId,
+          userId,
+          roomName: roomName || "",
+          roomLocation: roomLocation || "",
+          date: dateStr,
+          startTime,
+          endTime,
+          status: "confirmed",
+          seriesId,
+          recurrenceRule,
+        });
+      }
+    });
+
+    return res.status(201).json({ 
+      message: `Série criada com sucesso! ${seriesDates.length} reservas criadas.`,
+      count: seriesDates.length,
+      dates: seriesDates
+    });
+  } catch (error: any) {
+    if (error.message?.startsWith('SERIES_CONFLICT:')) {
+      return res.status(409).json({ 
+        message: error.message.replace('SERIES_CONFLICT:', '') 
+      });
+    }
+    console.error("Create series error:", error);
+    return res.status(500).json({ message: "Erro ao criar série de reservas" });
+  }
+});
+
 router.put("/reservations/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const reservationId = parseInt(req.params.id);
