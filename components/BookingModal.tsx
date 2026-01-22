@@ -3,6 +3,7 @@ import { X, Calendar, Clock, MapPin, Type, FileText, Repeat, ChevronDown, Chevro
 import { Room, SearchFilters } from '../types';
 import { Button } from './ui/button';
 import { ParticipantAutocomplete } from './ParticipantAutocomplete';
+import { TimePickerModal } from './TimePickerModal';
 
 interface UserSuggestion {
   id: number;
@@ -69,6 +70,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [recurrenceStartTime, setRecurrenceStartTime] = useState(filters.startTime);
   const [recurrenceEndTime, setRecurrenceEndTime] = useState(filters.endTime);
   const [isAllDay, setIsAllDay] = useState(false);
+  const [isRecurrenceStartTimeOpen, setIsRecurrenceStartTimeOpen] = useState(false);
+  const [isRecurrenceEndTimeOpen, setIsRecurrenceEndTimeOpen] = useState(false);
   const [repeatEvery, setRepeatEvery] = useState(1);
   const [repeatPeriod, setRepeatPeriod] = useState<'day' | 'week' | 'month' | 'year'>('week');
   const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]);
@@ -295,21 +298,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-dark mb-1">Hora Início</label>
-                        <input
-                          type="time"
-                          value={recurrenceStartTime}
-                          onChange={(e) => setRecurrenceStartTime(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary"
-                        />
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Clock className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                          </div>
+                          <input
+                            type="text"
+                            readOnly
+                            value={recurrenceStartTime}
+                            onClick={() => setIsRecurrenceStartTimeOpen(true)}
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary cursor-pointer hover:border-primary transition-colors"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-dark mb-1">Hora Fim</label>
-                        <input
-                          type="time"
-                          value={recurrenceEndTime}
-                          onChange={(e) => setRecurrenceEndTime(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary"
-                        />
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Clock className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                          </div>
+                          <input
+                            type="text"
+                            readOnly
+                            value={recurrenceEndTime}
+                            onClick={() => setIsRecurrenceEndTimeOpen(true)}
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary cursor-pointer hover:border-primary transition-colors"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -415,6 +430,39 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </Button>
         </div>
       </div>
+
+      <TimePickerModal
+        isOpen={isRecurrenceStartTimeOpen}
+        onClose={() => setIsRecurrenceStartTimeOpen(false)}
+        title="Hora de Início"
+        time={recurrenceStartTime}
+        onSelectTime={(time) => {
+          setRecurrenceStartTime(time);
+          const [h, m] = time.split(':').map(Number);
+          const endDate = new Date();
+          endDate.setHours(h);
+          endDate.setMinutes(m + 60);
+          const newEndTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+          if (recurrenceEndTime <= time) {
+            setRecurrenceEndTime(newEndTime);
+          }
+        }}
+      />
+
+      <TimePickerModal
+        isOpen={isRecurrenceEndTimeOpen}
+        onClose={() => setIsRecurrenceEndTimeOpen(false)}
+        title="Hora de Fim"
+        time={recurrenceEndTime}
+        onSelectTime={setRecurrenceEndTime}
+        minTime={(() => {
+          const [h, m] = recurrenceStartTime.split(':').map(Number);
+          const date = new Date();
+          date.setHours(h);
+          date.setMinutes(m + 15);
+          return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        })()}
+      />
     </div>
   );
 };
