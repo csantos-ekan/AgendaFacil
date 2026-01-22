@@ -749,7 +749,7 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
     
     const conflictingDates: string[] = [];
     
-    await db.transaction(async (tx) => {
+    const createdReservations = await db.transaction(async (tx) => {
       const existingReservations = await tx.select()
         .from(reservations)
         .where(
@@ -781,9 +781,10 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
       }
 
       const seriesId = `series_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const results: any[] = [];
       
       for (const dateStr of seriesDates) {
-        await tx.insert(reservations).values({
+        const [created] = await tx.insert(reservations).values({
           roomId,
           userId,
           roomName: roomName || "",
@@ -794,9 +795,51 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
           status: "confirmed",
           seriesId,
           recurrenceRule,
-        });
+        }).returning();
+        results.push(created);
       }
+      
+      return results;
     });
+
+    const organizer = await storage.getUser(userId);
+    
+    if (organizer?.email) {
+      const externalParticipants = parseParticipantEmails(participantEmails || '');
+      const calendarAttendees = externalParticipants.filter(
+        (e: string) => e.toLowerCase() !== organizer.email.toLowerCase()
+      );
+
+      const { db } = await import('./db');
+      const { reservations } = await import('../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      for (const reservation of createdReservations) {
+        try {
+          const calendarEventId = await createCalendarEvent({
+            organizerName: organizer.name,
+            organizerEmail: organizer.email,
+            roomName: roomName || '',
+            roomLocation: roomLocation || '',
+            date: reservation.date,
+            startTime,
+            endTime,
+            participants: calendarAttendees,
+            title: title || undefined,
+            description: description || undefined
+          });
+          
+          if (calendarEventId && reservation.id) {
+            await db.update(reservations)
+              .set({ calendarEventId })
+              .where(eq(reservations.id, reservation.id));
+            console.log(`Calendar event ${calendarEventId} created for series reservation ${reservation.id}`);
+          }
+        } catch (err) {
+          console.error(`Error creating calendar event for reservation ${reservation.id}:`, err);
+        }
+      }
+    }
 
     return res.status(201).json({ 
       message: `Série criada com sucesso! ${seriesDates.length} reservas criadas.`,

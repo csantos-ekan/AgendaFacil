@@ -106,7 +106,7 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
   - Validação de conflitos para toda a série antes de criar
   - Limite de 100 reservas por série
   - Campos seriesId e recurrenceRule no schema de reservas
-  - Sem integração com Google Calendar nesta fase
+  - Integração com Google Calendar: cada reserva da série cria um evento individual com convites para participantes
 - Gerenciamento de reservas para administradores
   - Nova tela "Gerenciar Reservas" no menu de administração
   - GET /api/admin/reservations com filtros por sala, data e ordenação
