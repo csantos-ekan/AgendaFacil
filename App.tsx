@@ -10,6 +10,7 @@ import { ProfileView } from './components/ProfileView';
 import { UsersManagementView } from './components/UsersManagementView';
 import { RoomsManagementView } from './components/RoomsManagementView';
 import { ResourcesManagementView } from './components/ResourcesManagementView';
+import { AdminReservationsView } from './components/AdminReservationsView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
 import { CheckCircle2, AlertCircle, Menu } from 'lucide-react';
@@ -364,6 +365,11 @@ const App: React.FC = () => {
           {/* VIEW: Resources Management (Admin Only) */}
           {activeTab === 'resources-management' && currentUser.role === 'admin' && (
             <ResourcesManagementView />
+          )}
+
+          {/* VIEW: Admin Reservations (Admin Only) */}
+          {activeTab === 'admin-reservations' && currentUser.role === 'admin' && (
+            <AdminReservationsView rooms={availableRooms} />
           )}
         </main>
       </div>

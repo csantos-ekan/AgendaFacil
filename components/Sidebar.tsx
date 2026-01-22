@@ -7,7 +7,8 @@ import {
   CalendarCheck, 
   UserCircle, 
   LogOut,
-  X
+  X,
+  ClipboardList
 } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { cn } from '../lib/utils';
@@ -89,6 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
             <NavItem tab="users-management" icon={Users} label="Gestão de Usuários" />
             <NavItem tab="rooms-management" icon={DoorOpen} label="Gestão de Salas" />
             <NavItem tab="resources-management" icon={Package} label="Gestão de Recursos" />
+            <NavItem tab="admin-reservations" icon={ClipboardList} label="Gerenciar Reservas" />
           </div>
         )}
 

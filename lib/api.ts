@@ -265,4 +265,42 @@ export const api = {
       return handleResponse(response);
     },
   },
+
+  admin: {
+    getReservations: async (params?: { roomId?: number; date?: string; sortBy?: string; sortOrder?: string }): Promise<AdminReservation[]> => {
+      const searchParams = new URLSearchParams();
+      if (params?.roomId) searchParams.set('roomId', String(params.roomId));
+      if (params?.date) searchParams.set('date', params.date);
+      if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+      if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+      const query = searchParams.toString();
+      const response = await fetch(`${API_BASE}/admin/reservations${query ? `?${query}` : ''}`, { headers: getAuthHeaders() });
+      return handleResponse(response);
+    },
+    cancelReservation: async (id: number): Promise<AdminReservation> => {
+      const response = await fetch(`${API_BASE}/admin/reservations/${id}/cancel`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
+  },
 };
+
+export interface AdminReservation {
+  id: number;
+  roomId: number;
+  roomName: string;
+  roomLocation: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  calendarEventId: string | null;
+  cancelledAt: string | null;
+  cancelledBy: number | null;
+  timestamp: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+}

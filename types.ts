@@ -54,4 +54,22 @@ export interface SearchFilters {
   capacity: number;
 }
 
-export type ViewState = 'search' | 'reservations' | 'profile' | 'users-management' | 'rooms-management' | 'resources-management';
+export type ViewState = 'search' | 'reservations' | 'profile' | 'users-management' | 'rooms-management' | 'resources-management' | 'admin-reservations';
+
+export interface AdminReservation {
+  id: number;
+  roomId: number;
+  roomName: string;
+  roomLocation: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  calendarEventId: string | null;
+  cancelledAt: string | null;
+  cancelledBy: number | null;
+  timestamp: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+}
