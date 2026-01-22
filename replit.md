@@ -109,6 +109,7 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
   - Integração com Google Calendar: um único evento recorrente é criado (RRULE), participantes recebem apenas 1 convite
   - Card único na tela "Minhas Reservas" para séries (mostra período e recorrência)
   - DELETE /api/reservations/series/:seriesId para cancelar toda a série de uma vez
+  - Organizador sempre recebe convite do Calendar (adicionado como attendee com status 'accepted')
 - Gerenciamento de reservas para administradores
   - Nova tela "Gerenciar Reservas" no menu de administração
   - GET /api/admin/reservations com filtros por sala, data e ordenação
