@@ -267,6 +267,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCancelSeries = async (seriesId: string) => {
+    try {
+      await api.reservations.cancelSeries(seriesId);
+      loadReservations();
+    } catch (error) {
+      console.error('Error cancelling series:', error);
+    }
+  };
+
   // Se não estiver autenticado, renderiza a LoginView
   if (isCheckingAuth) {
     return (
@@ -379,7 +388,8 @@ const App: React.FC = () => {
               </div>
               <ReservationList 
                 reservations={reservations} 
-                onCancel={handleCancelReservation} 
+                onCancel={handleCancelReservation}
+                onCancelSeries={handleCancelSeries}
               />
             </div>
           )}

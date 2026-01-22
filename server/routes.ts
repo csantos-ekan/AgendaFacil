@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import { desc, eq, and, asc } from "drizzle-orm";
+import { desc, eq, and, asc, inArray } from "drizzle-orm";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
@@ -859,6 +859,56 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
     }
     console.error("Create series error:", error);
     return res.status(500).json({ message: "Erro ao criar série de reservas" });
+  }
+});
+
+router.delete("/reservations/series/:seriesId", authMiddleware, auditMiddleware('reservation'), async (req: Request, res: Response) => {
+  try {
+    const { seriesId } = req.params;
+    const userId = (req as any).userId;
+    
+    const seriesReservations = await db.select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.seriesId, seriesId),
+          eq(reservations.status, 'confirmed')
+        )
+      );
+    
+    if (seriesReservations.length === 0) {
+      return res.status(404).json({ message: "Série não encontrada ou já cancelada" });
+    }
+    
+    const firstReservation = seriesReservations[0];
+    if (firstReservation.userId !== userId) {
+      const user = await storage.getUser(userId);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Você não tem permissão para cancelar esta série" });
+      }
+    }
+    
+    if (firstReservation.calendarEventId) {
+      try {
+        await deleteCalendarEvent(firstReservation.calendarEventId);
+        console.log(`Calendar event ${firstReservation.calendarEventId} deleted for cancelled series ${seriesId}`);
+      } catch (err) {
+        console.error('Error deleting calendar event for series:', err);
+      }
+    }
+    
+    const reservationIds = seriesReservations.map(r => r.id);
+    await db.update(reservations)
+      .set({ status: 'cancelled' })
+      .where(inArray(reservations.id, reservationIds));
+    
+    return res.json({ 
+      message: `Série cancelada com sucesso! ${reservationIds.length} reservas canceladas.`,
+      count: reservationIds.length
+    });
+  } catch (error) {
+    console.error("Cancel series error:", error);
+    return res.status(500).json({ message: "Erro ao cancelar série de reservas" });
   }
 });
 

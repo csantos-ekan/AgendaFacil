@@ -45,6 +45,12 @@ export interface Reservation {
   endTime: string;
   status: 'confirmed' | 'cancelled';
   timestamp: number;
+  seriesId?: string | null;
+  recurrenceRule?: {
+    repeatEvery: number;
+    repeatPeriod: 'day' | 'week' | 'month' | 'year';
+    weekDays?: number[];
+  } | null;
 }
 
 export interface SearchFilters {

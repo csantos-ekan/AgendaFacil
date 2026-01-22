@@ -85,6 +85,12 @@ export interface ApiReservation {
   endTime: string;
   status: string;
   timestamp: string | null;
+  seriesId?: string | null;
+  recurrenceRule?: {
+    repeatEvery: number;
+    repeatPeriod: 'day' | 'week' | 'month' | 'year';
+    weekDays?: number[];
+  } | null;
 }
 
 export interface RoomAvailability {
@@ -287,6 +293,13 @@ export const api = {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
+      });
+      return handleResponse(response);
+    },
+    cancelSeries: async (seriesId: string): Promise<{ message: string; count: number }> => {
+      const response = await fetch(`${API_BASE}/reservations/series/${encodeURIComponent(seriesId)}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
       });
       return handleResponse(response);
     },
