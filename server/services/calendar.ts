@@ -167,10 +167,15 @@ export async function createCalendarEvent(data: CalendarEventData): Promise<stri
   try {
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const attendees = data.participants.map(email => ({
-      email,
-      responseStatus: 'needsAction'
-    }));
+    const attendees = [
+      { email: data.organizerEmail, responseStatus: 'accepted' as const },
+      ...data.participants
+        .filter(email => email.toLowerCase() !== data.organizerEmail.toLowerCase())
+        .map(email => ({
+          email,
+          responseStatus: 'needsAction' as const
+        }))
+    ];
 
     const eventTitle = data.title || `Reunião – ${data.roomName}`;
     const eventDescription = data.description 
@@ -265,10 +270,15 @@ export async function createRecurringCalendarEvent(data: RecurringCalendarEventD
   try {
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const attendees = data.participants.map(email => ({
-      email,
-      responseStatus: 'needsAction'
-    }));
+    const attendees = [
+      { email: data.organizerEmail, responseStatus: 'accepted' as const },
+      ...data.participants
+        .filter(email => email.toLowerCase() !== data.organizerEmail.toLowerCase())
+        .map(email => ({
+          email,
+          responseStatus: 'needsAction' as const
+        }))
+    ];
 
     const eventTitle = data.title || `Reunião – ${data.roomName}`;
     const eventDescription = data.description 
