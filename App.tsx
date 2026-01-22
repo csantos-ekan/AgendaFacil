@@ -369,7 +369,7 @@ const App: React.FC = () => {
 
           {/* VIEW: Admin Reservations (Admin Only) */}
           {activeTab === 'admin-reservations' && currentUser.role === 'admin' && (
-            <AdminReservationsView rooms={availableRooms} />
+            <AdminReservationsView />
           )}
         </main>
       </div>

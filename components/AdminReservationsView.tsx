@@ -3,14 +3,15 @@ import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter } fr
 import { api, AdminReservation } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Room } from '../types';
 
-interface AdminReservationsViewProps {
-  rooms: Room[];
+interface RoomOption {
+  id: number;
+  name: string;
 }
 
-export const AdminReservationsView: React.FC<AdminReservationsViewProps> = ({ rooms }) => {
+export const AdminReservationsView: React.FC = () => {
   const [reservations, setReservations] = useState<AdminReservation[]>([]);
+  const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterRoomId, setFilterRoomId] = useState<string>('');
   const [filterDate, setFilterDate] = useState<string>('');
@@ -19,8 +20,22 @@ export const AdminReservationsView: React.FC<AdminReservationsViewProps> = ({ ro
   const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
+    loadRooms();
+    loadReservations();
+  }, []);
+
+  useEffect(() => {
     loadReservations();
   }, [filterRoomId, filterDate, sortOrder]);
+
+  const loadRooms = async () => {
+    try {
+      const data = await api.rooms.getAll();
+      setRooms(data.map(r => ({ id: r.id, name: r.name })));
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    }
+  };
 
   const loadReservations = async () => {
     setIsLoading(true);
