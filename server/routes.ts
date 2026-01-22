@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import { desc, eq, and, asc, inArray } from "drizzle-orm";
+import { desc, eq, and, asc, inArray, ne, gte, lt } from "drizzle-orm";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
@@ -1017,7 +1017,7 @@ router.get("/audit/logs", authMiddleware, adminMiddleware, async (req: Request, 
 
 router.get("/admin/reservations", authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
-    const { roomId, date, sortBy = 'date', sortOrder = 'desc' } = req.query;
+    const { roomId, date, status, sortBy = 'date', sortOrder = 'desc' } = req.query;
     
     let conditions = [];
     if (roomId) {
@@ -1025,6 +1025,18 @@ router.get("/admin/reservations", authMiddleware, adminMiddleware, async (req: R
     }
     if (date) {
       conditions.push(eq(reservations.date, date as string));
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (status === 'cancelled') {
+      conditions.push(eq(reservations.status, 'cancelled'));
+    } else if (status === 'active') {
+      conditions.push(ne(reservations.status, 'cancelled'));
+      conditions.push(gte(reservations.date, today));
+    } else if (status === 'completed') {
+      conditions.push(ne(reservations.status, 'cancelled'));
+      conditions.push(lt(reservations.date, today));
     }
     
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

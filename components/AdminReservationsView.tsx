@@ -15,6 +15,7 @@ export const AdminReservationsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filterRoomId, setFilterRoomId] = useState<string>('');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showToast, setShowToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({show: false, msg: '', type: 'success'});
   const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
@@ -26,7 +27,7 @@ export const AdminReservationsView: React.FC = () => {
 
   useEffect(() => {
     loadReservations();
-  }, [filterRoomId, filterDate, sortOrder]);
+  }, [filterRoomId, filterDate, filterStatus, sortOrder]);
 
   const loadRooms = async () => {
     try {
@@ -40,9 +41,10 @@ export const AdminReservationsView: React.FC = () => {
   const loadReservations = async () => {
     setIsLoading(true);
     try {
-      const params: { roomId?: number; date?: string; sortOrder?: string } = {};
+      const params: { roomId?: number; date?: string; status?: string; sortOrder?: string } = {};
       if (filterRoomId) params.roomId = parseInt(filterRoomId);
       if (filterDate) params.date = filterDate;
+      if (filterStatus) params.status = filterStatus;
       params.sortOrder = sortOrder;
       
       const data = await api.admin.getReservations(params);
@@ -80,6 +82,7 @@ export const AdminReservationsView: React.FC = () => {
   const clearFilters = () => {
     setFilterRoomId('');
     setFilterDate('');
+    setFilterStatus('');
   };
 
   return (
@@ -125,7 +128,7 @@ export const AdminReservationsView: React.FC = () => {
           <Filter className="w-5 h-5 text-gray-500" />
           <span className="font-medium text-gray-700">Filtros</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Sala</label>
             <select
@@ -147,6 +150,19 @@ export const AdminReservationsView: React.FC = () => {
               onChange={(e) => setFilterDate(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todos os status</option>
+              <option value="active">Ativa</option>
+              <option value="completed">Concluída</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ordenar</label>

@@ -112,7 +112,8 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
   - Organizador sempre recebe convite do Calendar (adicionado como attendee com status 'accepted')
 - Gerenciamento de reservas para administradores
   - Nova tela "Gerenciar Reservas" no menu de administração
-  - GET /api/admin/reservations com filtros por sala, data e ordenação
+  - GET /api/admin/reservations com filtros por sala, data, status e ordenação
+  - Filtro de status: Ativa (futuras não canceladas), Concluída (passadas não canceladas), Cancelada
   - PUT /api/admin/reservations/:id/cancel para cancelar qualquer reserva
   - Admin pode visualizar todas as reservas do sistema (de todos os usuários)
   - Admin pode cancelar qualquer reserva com notificação automática via Google Calendar

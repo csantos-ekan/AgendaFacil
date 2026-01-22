@@ -306,10 +306,11 @@ export const api = {
   },
 
   admin: {
-    getReservations: async (params?: { roomId?: number; date?: string; sortBy?: string; sortOrder?: string }): Promise<AdminReservation[]> => {
+    getReservations: async (params?: { roomId?: number; date?: string; status?: string; sortBy?: string; sortOrder?: string }): Promise<AdminReservation[]> => {
       const searchParams = new URLSearchParams();
       if (params?.roomId) searchParams.set('roomId', String(params.roomId));
       if (params?.date) searchParams.set('date', params.date);
+      if (params?.status) searchParams.set('status', params.status);
       if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
       if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
       const query = searchParams.toString();
