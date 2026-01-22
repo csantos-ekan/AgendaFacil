@@ -105,6 +105,8 @@ const App: React.FC = () => {
         endTime: r.endTime,
         status: r.status as 'confirmed' | 'cancelled',
         timestamp: r.timestamp ? new Date(r.timestamp).getTime() : Date.now(),
+        seriesId: r.seriesId,
+        recurrenceRule: r.recurrenceRule,
       }));
       setReservations(mappedReservations);
     } catch (error) {
