@@ -209,6 +209,108 @@ export async function createCalendarEvent(data: CalendarEventData): Promise<stri
   }
 }
 
+interface RecurringCalendarEventData {
+  organizerName: string;
+  organizerEmail: string;
+  roomName: string;
+  roomLocation: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  participants: string[];
+  title?: string;
+  description?: string;
+  recurrenceRule: {
+    repeatEvery: number;
+    repeatPeriod: 'day' | 'week' | 'month' | 'year';
+    weekDays?: number[];
+  };
+}
+
+function buildRRule(recurrenceRule: RecurringCalendarEventData['recurrenceRule'], endDate: string): string {
+  const freqMap: Record<string, string> = {
+    'day': 'DAILY',
+    'week': 'WEEKLY',
+    'month': 'MONTHLY',
+    'year': 'YEARLY'
+  };
+  
+  const freq = freqMap[recurrenceRule.repeatPeriod];
+  const interval = recurrenceRule.repeatEvery;
+  
+  const untilDate = endDate.replace(/-/g, '') + 'T235959Z';
+  
+  let rrule = `RRULE:FREQ=${freq};INTERVAL=${interval};UNTIL=${untilDate}`;
+  
+  if (recurrenceRule.repeatPeriod === 'week' && recurrenceRule.weekDays && recurrenceRule.weekDays.length > 0) {
+    const dayMap: Record<number, string> = {
+      0: 'SU', 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA'
+    };
+    const byDay = recurrenceRule.weekDays.map(d => dayMap[d]).join(',');
+    rrule += `;BYDAY=${byDay}`;
+  }
+  
+  return rrule;
+}
+
+export async function createRecurringCalendarEvent(data: RecurringCalendarEventData): Promise<string | null> {
+  const auth = getCalendarAuth();
+  
+  if (!auth) {
+    console.log('Recurring calendar event creation skipped: Google Calendar not configured');
+    return null;
+  }
+
+  try {
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const attendees = data.participants.map(email => ({
+      email,
+      responseStatus: 'needsAction'
+    }));
+
+    const eventTitle = data.title || `Reunião – ${data.roomName}`;
+    const eventDescription = data.description 
+      ? `${data.description}\n\nSala: ${data.roomName}\nLocal: ${data.roomLocation}\nOrganizador: ${data.organizerName}`
+      : `Sala: ${data.roomName}\nLocal: ${data.roomLocation}\nOrganizador: ${data.organizerName}`;
+
+    const rrule = buildRRule(data.recurrenceRule, data.endDate);
+    console.log('[Calendar] Generated RRULE:', rrule);
+
+    const event = {
+      summary: eventTitle,
+      location: data.roomLocation,
+      description: eventDescription,
+      start: {
+        dateTime: buildDateTime(data.startDate, data.startTime),
+        timeZone: 'America/Sao_Paulo'
+      },
+      end: {
+        dateTime: buildDateTime(data.startDate, data.endTime),
+        timeZone: 'America/Sao_Paulo'
+      },
+      recurrence: [rrule],
+      attendees,
+      reminders: {
+        useDefault: true
+      }
+    };
+
+    const response = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: event,
+      sendUpdates: 'all'
+    });
+
+    console.log(`Recurring calendar event created successfully: ${response.data.id}`);
+    return response.data.id || null;
+  } catch (error) {
+    console.error('Error creating recurring calendar event:', error);
+    return null;
+  }
+}
+
 export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
   const auth = getCalendarAuth();
   

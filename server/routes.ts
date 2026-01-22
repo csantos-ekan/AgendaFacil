@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
 import { parseParticipantEmails } from "./services/email";
-import { createCalendarEvent, deleteCalendarEvent, testCalendarConnection } from "./services/calendar";
+import { createCalendarEvent, createRecurringCalendarEvent, deleteCalendarEvent, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
@@ -810,34 +810,39 @@ router.post("/reservations/series", authMiddleware, auditMiddleware('reservation
         (e: string) => e.toLowerCase() !== organizer.email.toLowerCase()
       );
 
-      const { db } = await import('./db');
-      const { reservations } = await import('../shared/schema');
-      const { eq } = await import('drizzle-orm');
-
-      for (const reservation of createdReservations) {
-        try {
-          const calendarEventId = await createCalendarEvent({
-            organizerName: organizer.name,
-            organizerEmail: organizer.email,
-            roomName: roomName || '',
-            roomLocation: roomLocation || '',
-            date: reservation.date,
-            startTime,
-            endTime,
-            participants: calendarAttendees,
-            title: title || undefined,
-            description: description || undefined
-          });
-          
-          if (calendarEventId && reservation.id) {
-            await db.update(reservations)
-              .set({ calendarEventId })
-              .where(eq(reservations.id, reservation.id));
-            console.log(`Calendar event ${calendarEventId} created for series reservation ${reservation.id}`);
+      try {
+        const calendarEventId = await createRecurringCalendarEvent({
+          organizerName: organizer.name,
+          organizerEmail: organizer.email,
+          roomName: roomName || '',
+          roomLocation: roomLocation || '',
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          participants: calendarAttendees,
+          title: title || undefined,
+          description: description || undefined,
+          recurrenceRule: {
+            repeatEvery: repeatEvery || 1,
+            repeatPeriod: repeatPeriod || 'week',
+            weekDays: weekDays || []
           }
-        } catch (err) {
-          console.error(`Error creating calendar event for reservation ${reservation.id}:`, err);
+        });
+        
+        if (calendarEventId && createdReservations.length > 0) {
+          const { db } = await import('./db');
+          const { reservations } = await import('../shared/schema');
+          const { inArray } = await import('drizzle-orm');
+          
+          const reservationIds = createdReservations.map((r: any) => r.id);
+          await db.update(reservations)
+            .set({ calendarEventId })
+            .where(inArray(reservations.id, reservationIds));
+          console.log(`Single recurring calendar event ${calendarEventId} saved to ${reservationIds.length} reservations`);
         }
+      } catch (err) {
+        console.error('Error creating recurring calendar event:', err);
       }
     }
 
