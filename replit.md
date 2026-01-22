@@ -30,6 +30,7 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 │   ├── UsersManagementView.tsx
 │   ├── RoomsManagementView.tsx
 │   ├── ResourcesManagementView.tsx
+│   ├── AdminReservationsView.tsx
 │   └── ...
 ├── lib/
 │   ├── api.ts              # Cliente API para comunicação com backend
@@ -93,6 +94,16 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 - `npm run db:push` - Sincronizar schema do banco
 
 ## Mudanças Recentes
+
+### 2026-01-22
+- Gerenciamento de reservas para administradores
+  - Nova tela "Gerenciar Reservas" no menu de administração
+  - GET /api/admin/reservations com filtros por sala, data e ordenação
+  - PUT /api/admin/reservations/:id/cancel para cancelar qualquer reserva
+  - Admin pode visualizar todas as reservas do sistema (de todos os usuários)
+  - Admin pode cancelar qualquer reserva com notificação automática via Google Calendar
+  - Campos cancelledAt e cancelledBy para rastreio de cancelamentos
+  - Filtros por sala e data, ordenação por data mais recente/antiga
 
 ### 2026-01-13
 - Notificação de cancelamento para participantes via Google Calendar
