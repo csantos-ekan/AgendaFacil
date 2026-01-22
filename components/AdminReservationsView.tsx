@@ -226,22 +226,41 @@ export const AdminReservationsView: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      {reservation.status === 'cancelled' ? (
-                        <Badge variant="destructive">Cancelada</Badge>
-                      ) : (
-                        <Badge variant="success">Ativa</Badge>
-                      )}
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const reservationDate = new Date(reservation.date + 'T00:00:00');
+                        const isPast = reservationDate < today;
+                        
+                        if (reservation.status === 'cancelled') {
+                          return <Badge variant="destructive">Cancelada</Badge>;
+                        } else if (isPast) {
+                          return <Badge variant="secondary">Concluída</Badge>;
+                        } else {
+                          return <Badge variant="success">Ativa</Badge>;
+                        }
+                      })()}
                     </td>
                     <td className="px-4 py-4">
-                      {reservation.status !== 'cancelled' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setCancelConfirmId(reservation.id)}
-                        >
-                          Cancelar
-                        </Button>
-                      )}
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const reservationDate = new Date(reservation.date + 'T00:00:00');
+                        const isPast = reservationDate < today;
+                        
+                        if (reservation.status !== 'cancelled' && !isPast) {
+                          return (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setCancelConfirmId(reservation.id)}
+                            >
+                              Cancelar
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                   </tr>
                 ))}
