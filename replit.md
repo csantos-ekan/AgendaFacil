@@ -95,6 +95,18 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-23
+- Autenticação via Google OAuth 2.0
+  - Botão "Entrar com Google" na tela de login
+  - Restrição por domínio @ekan.com.br (emails externos são bloqueados)
+  - Criação automática de usuário no primeiro login
+  - tmotta@ekan.com.br definido como admin inicial
+  - Demais usuários são criados como "colaborador"
+  - Atualização automática de nome e foto do Google
+  - Token JWT gerado após autenticação bem-sucedida
+  - Mensagens de erro claras para domínios não autorizados
+  - Rotas: GET /api/auth/google, GET /api/auth/google/callback
+
 ### 2026-01-22
 - Reservas recorrentes (série)
   - Botão "Série" no modal de reserva ao lado do nome da sala
