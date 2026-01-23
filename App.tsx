@@ -14,7 +14,7 @@ import { AdminReservationsView } from './components/AdminReservationsView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
 import { CheckCircle2, AlertCircle, Menu } from 'lucide-react';
-import { api, clearAuth, getStoredToken } from './lib/api';
+import { api, clearAuth, getStoredToken, setAuthToken } from './lib/api';
 import { validateReservationTime } from './lib/validation';
 
 const App: React.FC = () => {
@@ -36,6 +36,30 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkStoredAuth = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const oauthToken = urlParams.get('token');
+      const oauthUser = urlParams.get('user');
+      
+      if (oauthToken && oauthUser) {
+        try {
+          setAuthToken(oauthToken);
+          const userData = JSON.parse(decodeURIComponent(oauthUser));
+          setCurrentUser({
+            id: String(userData.id),
+            name: userData.name,
+            email: userData.email,
+            role: userData.role as 'admin' | 'colaborador',
+            avatar: userData.avatar || undefined,
+          });
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setIsCheckingAuth(false);
+          return;
+        } catch (error) {
+          console.error('OAuth callback handling failed:', error);
+          clearAuth();
+        }
+      }
+      
       const token = getStoredToken();
       if (token) {
         try {

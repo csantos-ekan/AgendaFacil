@@ -10,6 +10,7 @@ import { createCalendarEvent, createRecurringCalendarEvent, deleteCalendarEvent,
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
+import { getGoogleAuthUrl, getGoogleUserInfo, validateDomain, isAdminEmail, getCallbackUrl } from "./services/google-oauth";
 import { db } from "./db";
 import { auditLogs, reservations, users, rooms } from "../shared/schema";
 
@@ -83,6 +84,94 @@ router.post("/auth/login", loginLimiter, async (req: Request, res: Response) => 
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+router.get("/auth/google", (_req: Request, res: Response) => {
+  try {
+    const authUrl = getGoogleAuthUrl();
+    console.log('[Google OAuth] Redirecting to Google. Callback URL:', getCallbackUrl());
+    return res.redirect(authUrl);
+  } catch (error) {
+    console.error("Google auth redirect error:", error);
+    return res.redirect('/?error=auth_init_failed');
+  }
+});
+
+router.get("/auth/google/callback", async (req: Request, res: Response) => {
+  try {
+    const { code, error } = req.query;
+    
+    if (error) {
+      console.error('[Google OAuth] Error from Google:', error);
+      return res.redirect('/?error=google_auth_denied');
+    }
+    
+    if (!code || typeof code !== 'string') {
+      return res.redirect('/?error=no_auth_code');
+    }
+    
+    const userInfo = await getGoogleUserInfo(code);
+    console.log('[Google OAuth] User info received:', userInfo.email);
+    
+    if (!validateDomain(userInfo.email)) {
+      console.log('[Google OAuth] Domain not allowed:', userInfo.email);
+      return res.redirect('/?error=domain_not_allowed');
+    }
+    
+    let user = await storage.getUserByEmail(userInfo.email);
+    
+    if (!user) {
+      const role = isAdminEmail(userInfo.email) ? 'admin' : 'colaborador';
+      console.log('[Google OAuth] Creating new user:', userInfo.email, 'with role:', role);
+      
+      const randomPassword = Math.random().toString(36).slice(-16);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      
+      user = await storage.createUser({
+        name: userInfo.name,
+        email: userInfo.email,
+        password: hashedPassword,
+        role,
+        status: 'Ativo',
+        avatar: userInfo.picture || null,
+        cpf: null,
+      });
+    } else {
+      console.log('[Google OAuth] Existing user found:', userInfo.email);
+      
+      if (userInfo.picture && userInfo.picture !== user.avatar) {
+        await db
+          .update(users)
+          .set({ avatar: userInfo.picture, name: userInfo.name })
+          .where(eq(users.id, user.id));
+        user.avatar = userInfo.picture;
+        user.name = userInfo.name;
+      }
+    }
+    
+    const token = generateToken({
+      userId: user.id,
+      role: user.role,
+      email: user.email
+    });
+    
+    console.log('[Google OAuth] Login successful for:', userInfo.email);
+    
+    const userData = encodeURIComponent(JSON.stringify({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      avatar: user.avatar,
+    }));
+    
+    return res.redirect(`/?token=${token}&user=${userData}`);
+    
+  } catch (error: any) {
+    console.error("Google auth callback error:", error);
+    return res.redirect('/?error=auth_failed');
   }
 });
 
