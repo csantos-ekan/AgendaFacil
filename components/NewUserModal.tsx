@@ -114,7 +114,6 @@ export const NewUserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave
               <label className="block text-sm font-semibold text-[#1E293B] mb-2">CPF</label>
               <input
                 type="text"
-                required
                 placeholder="000.000.000-00"
                 value={formatCPF(formData.cpf)}
                 onChange={(e) => setFormData({...formData, cpf: e.target.value.replace(/\D/g, '').slice(0, 11)})}
