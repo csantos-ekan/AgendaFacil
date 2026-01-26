@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api, AdminReservation } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -20,6 +20,8 @@ export const AdminReservationsView: React.FC = () => {
   const [showToast, setShowToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({show: false, msg: '', type: 'success'});
   const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     loadRooms();
@@ -27,6 +29,7 @@ export const AdminReservationsView: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    setCurrentPage(1);
     loadReservations();
   }, [filterRoomId, filterDate, filterStatus, sortOrder]);
 
@@ -96,7 +99,14 @@ export const AdminReservationsView: React.FC = () => {
     setFilterRoomId('');
     setFilterDate('');
     setFilterStatus('');
+    setCurrentPage(1);
   };
+
+  const totalPages = Math.ceil(reservations.length / ITEMS_PER_PAGE);
+  const paginatedReservations = reservations.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="p-6">
@@ -238,7 +248,7 @@ export const AdminReservationsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {reservations.map((reservation) => (
+                {paginatedReservations.map((reservation) => (
                   <tr key={reservation.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       <div className="flex items-start gap-2">
@@ -324,6 +334,45 @@ export const AdminReservationsView: React.FC = () => {
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, reservations.length)} de {reservations.length} reservas
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
