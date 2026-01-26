@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter, Trash2 } from 'lucide-react';
 import { api, AdminReservation } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -19,6 +19,7 @@ export const AdminReservationsView: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showToast, setShowToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({show: false, msg: '', type: 'success'});
   const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     loadRooms();
@@ -74,6 +75,18 @@ export const AdminReservationsView: React.FC = () => {
     }
   };
 
+  const handleDeleteReservation = async (id: number) => {
+    try {
+      await api.admin.deleteReservation(id);
+      triggerToast('Reserva excluída com sucesso!', 'success');
+      setDeleteConfirmId(null);
+      loadReservations();
+    } catch (error: any) {
+      console.error('Error deleting reservation:', error);
+      triggerToast(error.message || 'Erro ao excluir reserva', 'error');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
@@ -113,6 +126,25 @@ export const AdminReservationsView: React.FC = () => {
               </Button>
               <Button variant="destructive" onClick={() => handleCancelReservation(cancelConfirmId)}>
                 Cancelar Reserva
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirmar Exclusão</h3>
+            <p className="text-gray-600 mb-6">
+              Tem certeza que deseja excluir esta reserva permanentemente? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+                Voltar
+              </Button>
+              <Button variant="destructive" onClick={() => handleDeleteReservation(deleteConfirmId)}>
+                Excluir Reserva
               </Button>
             </div>
           </div>
@@ -258,25 +290,34 @@ export const AdminReservationsView: React.FC = () => {
                       })()}
                     </td>
                     <td className="px-4 py-4">
-                      {(() => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const reservationDate = new Date(reservation.date + 'T00:00:00');
-                        const isPast = reservationDate < today;
-                        
-                        if (reservation.status !== 'cancelled' && !isPast) {
-                          return (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setCancelConfirmId(reservation.id)}
-                            >
-                              Cancelar
-                            </Button>
-                          );
-                        }
-                        return null;
-                      })()}
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const reservationDate = new Date(reservation.date + 'T00:00:00');
+                          const isPast = reservationDate < today;
+                          
+                          if (reservation.status !== 'cancelled' && !isPast) {
+                            return (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setCancelConfirmId(reservation.id)}
+                              >
+                                Cancelar
+                              </Button>
+                            );
+                          }
+                          return null;
+                        })()}
+                        <button
+                          onClick={() => setDeleteConfirmId(reservation.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

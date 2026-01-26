@@ -324,6 +324,13 @@ export const api = {
       });
       return handleResponse(response);
     },
+    deleteReservation: async (id: number): Promise<void> => {
+      const response = await fetch(`${API_BASE}/reservations/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
   },
 };
 
