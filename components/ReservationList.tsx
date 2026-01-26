@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, Repeat } from 'lucide-react';
 import { Reservation } from '../types';
 import { Badge } from './ui/badge';
@@ -43,6 +43,23 @@ function formatRecurrenceDescription(rule: Reservation['recurrenceRule']): strin
 }
 
 export const ReservationList: React.FC<ReservationListProps> = ({ reservations, onCancel, onCancelSeries }) => {
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [cancelSeriesConfirmId, setCancelSeriesConfirmId] = useState<string | null>(null);
+
+  const handleConfirmCancel = () => {
+    if (cancelConfirmId) {
+      onCancel(cancelConfirmId);
+      setCancelConfirmId(null);
+    }
+  };
+
+  const handleConfirmCancelSeries = () => {
+    if (cancelSeriesConfirmId && onCancelSeries) {
+      onCancelSeries(cancelSeriesConfirmId);
+      setCancelSeriesConfirmId(null);
+    }
+  };
+
   const groupedReservations: GroupedReservation[] = React.useMemo(() => {
     const seriesMap = new Map<string, Reservation[]>();
     const singles: Reservation[] = [];
@@ -151,7 +168,7 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
           <Button 
             variant="destructive" 
             className="w-full text-xs py-2.5 font-bold" 
-            onClick={() => onCancel(res.id)}
+            onClick={() => setCancelConfirmId(res.id)}
           >
             Cancelar
           </Button>
@@ -210,7 +227,7 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
             <Button 
               variant="destructive" 
               className="w-full text-xs py-2.5 font-bold" 
-              onClick={() => onCancelSeries(group.seriesId!)}
+              onClick={() => setCancelSeriesConfirmId(group.seriesId!)}
             >
               Cancelar Série
             </Button>
@@ -221,12 +238,52 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {groupedReservations.map((group) => 
-        group.type === 'single' 
-          ? renderSingleCard(group.reservation!) 
-          : renderSeriesCard(group)
+    <>
+      {cancelConfirmId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirmar Cancelamento</h3>
+            <p className="text-gray-600 mb-6">
+              Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setCancelConfirmId(null)}>
+                Voltar
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmCancel}>
+                Cancelar Reserva
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+
+      {cancelSeriesConfirmId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirmar Cancelamento da Série</h3>
+            <p className="text-gray-600 mb-6">
+              Tem certeza que deseja cancelar toda a série de reservas? Todas as ocorrências futuras serão canceladas. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setCancelSeriesConfirmId(null)}>
+                Voltar
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmCancelSeries}>
+                Cancelar Série
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {groupedReservations.map((group) => 
+          group.type === 'single' 
+            ? renderSingleCard(group.reservation!) 
+            : renderSeriesCard(group)
+        )}
+      </div>
+    </>
   );
 };
