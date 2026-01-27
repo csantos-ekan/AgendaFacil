@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Repeat } from 'lucide-react';
+import { Calendar, Clock, MapPin, Repeat, ChevronDown, ChevronUp } from 'lucide-react';
 import { Reservation } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -8,6 +8,12 @@ interface ReservationListProps {
   reservations: Reservation[];
   onCancel: (id: string) => void;
   onCancelSeries?: (seriesId: string) => void;
+}
+
+interface SeriesChoiceInfo {
+  reservationId: string;
+  seriesId: string;
+  date: string;
 }
 
 interface GroupedReservation {
@@ -45,6 +51,8 @@ function formatRecurrenceDescription(rule: Reservation['recurrenceRule']): strin
 export const ReservationList: React.FC<ReservationListProps> = ({ reservations, onCancel, onCancelSeries }) => {
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
   const [cancelSeriesConfirmId, setCancelSeriesConfirmId] = useState<string | null>(null);
+  const [seriesChoiceInfo, setSeriesChoiceInfo] = useState<SeriesChoiceInfo | null>(null);
+  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
 
   const handleConfirmCancel = () => {
     if (cancelConfirmId) {
@@ -58,6 +66,42 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
       onCancelSeries(cancelSeriesConfirmId);
       setCancelSeriesConfirmId(null);
     }
+  };
+
+  const handleSeriesReservationCancelClick = (reservation: Reservation) => {
+    if (reservation.seriesId) {
+      setSeriesChoiceInfo({
+        reservationId: reservation.id,
+        seriesId: reservation.seriesId,
+        date: reservation.date
+      });
+    }
+  };
+
+  const handleSeriesChoiceSingle = () => {
+    if (seriesChoiceInfo) {
+      onCancel(seriesChoiceInfo.reservationId);
+      setSeriesChoiceInfo(null);
+    }
+  };
+
+  const handleSeriesChoiceAll = () => {
+    if (seriesChoiceInfo && onCancelSeries) {
+      onCancelSeries(seriesChoiceInfo.seriesId);
+      setSeriesChoiceInfo(null);
+    }
+  };
+
+  const toggleSeriesExpanded = (seriesId: string) => {
+    setExpandedSeries(prev => {
+      const next = new Set(prev);
+      if (next.has(seriesId)) {
+        next.delete(seriesId);
+      } else {
+        next.add(seriesId);
+      }
+      return next;
+    });
   };
 
   const groupedReservations: GroupedReservation[] = React.useMemo(() => {
@@ -181,6 +225,8 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
     const firstRes = group.reservations![0];
     const hasConfirmed = group.reservations!.some(r => r.status === 'confirmed');
     const allCancelled = group.reservations!.every(r => r.status === 'cancelled');
+    const isExpanded = expandedSeries.has(group.seriesId!);
+    const confirmedReservations = group.reservations!.filter(r => r.status === 'confirmed');
     
     return (
       <div key={group.seriesId} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow relative">
@@ -199,7 +245,7 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
           </div>
         </div>
 
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-4">
           <div className="flex items-center gap-3 text-sm text-medium">
             <MapPin className="w-4 h-4" />
             <span>{firstRes.roomLocation}</span>
@@ -222,15 +268,54 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
           )}
         </div>
 
-        {hasConfirmed && onCancelSeries && (
-          <div className="pt-4 border-t border-gray-100 flex justify-center">
-            <Button 
-              variant="destructive" 
-              className="w-full text-xs py-2.5 font-bold" 
-              onClick={() => setCancelSeriesConfirmId(group.seriesId!)}
+        {hasConfirmed && confirmedReservations.length > 0 && (
+          <div className="border-t border-gray-100 pt-4">
+            <button
+              onClick={() => toggleSeriesExpanded(group.seriesId!)}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium mb-3 w-full justify-center"
             >
-              Cancelar Série
-            </Button>
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Ocultar datas
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Ver datas para cancelar individualmente
+                </>
+              )}
+            </button>
+
+            {isExpanded && (
+              <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                {confirmedReservations.map(res => (
+                  <div key={res.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-700">
+                      {new Date(res.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => handleSeriesReservationCancelClick(res)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {onCancelSeries && (
+              <Button 
+                variant="destructive" 
+                className="w-full text-xs py-2.5 font-bold" 
+                onClick={() => setCancelSeriesConfirmId(group.seriesId!)}
+              >
+                Cancelar Série Inteira
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -271,6 +356,48 @@ export const ReservationList: React.FC<ReservationListProps> = ({ reservations, 
               </Button>
               <Button variant="destructive" onClick={handleConfirmCancelSeries}>
                 Cancelar Série
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesChoiceInfo !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Repeat className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Cancelar Reserva de Série</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Esta reserva faz parte de uma série recorrente.
+            </p>
+            <p className="text-gray-600 mb-6">
+              O que você deseja cancelar?
+            </p>
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={handleSeriesChoiceSingle}
+              >
+                Cancelar apenas esta reserva ({new Date(seriesChoiceInfo.date + 'T00:00:00').toLocaleDateString('pt-BR')})
+              </Button>
+              {onCancelSeries && (
+                <Button 
+                  variant="destructive" 
+                  className="w-full justify-start"
+                  onClick={handleSeriesChoiceAll}
+                >
+                  Cancelar toda a série
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => setSeriesChoiceInfo(null)}
+              >
+                Voltar
               </Button>
             </div>
           </div>
