@@ -91,6 +91,17 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 ## Mudanças Recentes
 
 ### 2026-01-27
+- Funcionalidade "Esqueceu a senha?" implementada
+  - Modal de solicitação de redefinição na tela de login
+  - Gera token único e seguro (32 bytes, armazenado como hash SHA-256)
+  - Token expira em 30 minutos e é de uso único
+  - Envia email com link de redefinição via SMTP
+  - Tela de redefinição de senha com validação de token
+  - Validações: senha mínima 6 caracteres, confirmação de senha
+  - Rate limiting: 3 solicitações por 15 minutos
+  - Mensagem genérica para evitar enumeração de usuários
+  - Endpoints: POST /auth/forgot-password, GET /auth/validate-reset-token/:token, POST /auth/reset-password
+  - Tabela password_reset_tokens no banco de dados
 - Revisão de segurança e correções LGPD
   - JWT_SECRET obrigatório: servidor não inicia se variável não estiver configurada
   - Verificação de propriedade: usuários só podem acessar/editar seus próprios dados
