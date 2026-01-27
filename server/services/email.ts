@@ -154,3 +154,77 @@ export function parseParticipantEmails(emailString: string): string[] {
     .map(email => email.trim())
     .filter(email => email.length > 0 && emailRegex.test(email));
 }
+
+function buildPasswordResetEmailHtml(resetLink: string, expirationMinutes: number): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #3B82F6; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 20px 0; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin-top: 16px; }
+        .footer { margin-top: 20px; font-size: 12px; color: #6b7280; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2 style="margin: 0;">Redefinição de Senha</h2>
+        </div>
+        <div class="content">
+          <p>Você solicitou a redefinição de senha para sua conta no Sistema de Reservas de Salas.</p>
+          
+          <p>Clique no botão abaixo para criar uma nova senha:</p>
+          
+          <a href="${resetLink}" class="button" style="color: white;">Redefinir Minha Senha</a>
+          
+          <div class="warning">
+            <strong>Atenção:</strong> Este link é válido por ${expirationMinutes} minutos. Após esse período, você precisará solicitar um novo link.
+          </div>
+          
+          <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+            Se você não solicitou esta redefinição, ignore este e-mail. Sua senha permanecerá inalterada.
+          </p>
+          
+          <div class="footer">
+            <p>Este é um e-mail automático do sistema RoomBooker Corporate.</p>
+            <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+            <p style="word-break: break-all; color: #3B82F6;">${resetLink}</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendPasswordResetEmail(to: string, resetLink: string, expirationMinutes: number = 30): Promise<boolean> {
+  const config = getEmailConfig();
+  
+  if (!config) {
+    console.log('Email sending skipped: SMTP not configured');
+    return false;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport(config);
+
+    await transporter.sendMail({
+      from: config.auth.user,
+      to: to,
+      subject: 'Redefinição de senha – Sistema de Reservas de Salas',
+      html: buildPasswordResetEmailHtml(resetLink, expirationMinutes)
+    });
+
+    console.log(`Password reset email sent successfully to: ${to}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return false;
+  }
+}

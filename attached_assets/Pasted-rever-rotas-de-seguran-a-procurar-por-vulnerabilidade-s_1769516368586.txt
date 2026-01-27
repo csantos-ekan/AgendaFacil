@@ -1,0 +1,73 @@
+rever rotas de segurança
+procurar por vulnerabilidade
+segurança do sistema
+revisar gitignore e rever tudo o que for necessário
+pontos de melhoria para lgpd
+
+Objetivo:
+Implementar a funcionalidade "Esqueceu a senha?" permitindo que o usuário
+redefina sua senha de forma segura através do e-mail corporativo.
+
+Fluxo esperado:
+1. Usuário clica em "Esqueceu a senha?"
+2. Informa seu e-mail corporativo
+3. Sistema envia um e-mail com link para redefinição de senha
+4. Usuário acessa o link
+5. Define uma nova senha
+6. Sistema confirma a alteração
+
+Requisitos funcionais:
+- O e-mail informado deve existir no sistema
+- Não informar ao usuário se o e-mail existe ou não (evitar enumeração)
+- Gerar token único, seguro e temporário para redefinição
+- Token deve expirar (ex: 15 ou 30 minutos)
+- Token deve ser de uso único
+
+Requisitos de segurança:
+- Armazenar o token de redefinição de forma segura (hash)
+- Invalidar token após uso ou expiração
+- Não permitir reutilização do token
+- Armazenar a nova senha com hash seguro
+- Invalidar sessões ativas após redefinição
+
+Requisitos de interface (UI):
+Modal "Esqueceu a senha":
+- Campo: e-mail
+- Botão: "Enviar link de redefinição"
+
+Tela "Redefinir senha":
+- Campo: nova senha
+- Campo: confirmar nova senha
+- Botão: "Salvar nova senha"
+- Mensagens claras de orientação
+
+Conteúdo do e-mail:
+- Assunto:
+  "Redefinição de senha – Sistema de Reservas de Salas"
+- Corpo do e-mail deve conter:
+  - Texto explicando a solicitação
+  - Link para redefinir a senha
+  - Informação de validade do link
+
+Comportamento esperado:
+- Sempre exibir mensagem genérica:
+  "Se o e-mail estiver cadastrado, você receberá um link para redefinição."
+- Não permitir redefinição com token inválido ou expirado
+- Redirecionar o usuário para a tela de login após sucesso
+
+Backend:
+- Criar endpoints específicos para:
+  - Solicitação de redefinição
+  - Validação de token
+  - Atualização de senha
+
+Escopo:
+- Implementar frontend e backend necessários
+- Não integrar com autenticação externa
+- Não alterar layout global do sistema
+- Não implementar múltiplos fatores (2FA)
+
+Resultado esperado:
+- Usuário consegue redefinir a senha de forma segura
+- Fluxo simples e confiável
+- Sistema protegido contra abuso e ataques comuns

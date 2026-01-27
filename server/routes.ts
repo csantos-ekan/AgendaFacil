@@ -1,18 +1,19 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { desc, eq, and, asc, inArray, ne, gte, lt } from "drizzle-orm";
 import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
-import { parseParticipantEmails } from "./services/email";
+import { parseParticipantEmails, sendPasswordResetEmail } from "./services/email";
 import { createCalendarEvent, createRecurringCalendarEvent, deleteCalendarEvent, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
 import { getGoogleAuthUrl, getGoogleUserInfo, validateDomain, isAdminEmail, getCallbackUrl } from "./services/google-oauth";
 import { db } from "./db";
-import { auditLogs, reservations, users, rooms } from "../shared/schema";
+import { auditLogs, reservations, users, rooms, passwordResetTokens } from "../shared/schema";
 
 export const router = Router();
 
@@ -92,6 +93,138 @@ router.post("/auth/login", loginLimiter, async (req: Request, res: Response) => 
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  message: { message: "Muitas solicitações de redefinição de senha. Tente novamente em 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const PASSWORD_RESET_EXPIRATION_MINUTES = 30;
+
+router.post("/auth/forgot-password", passwordResetLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+
+    const genericMessage = "Se o e-mail estiver cadastrado, você receberá um link para redefinição.";
+
+    const user = await storage.getUserByEmail(email);
+    
+    if (!user) {
+      return res.json({ message: genericMessage });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRATION_MINUTES * 60 * 1000);
+
+    await db.insert(passwordResetTokens).values({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    });
+
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:5000';
+    const resetLink = `${baseUrl}/reset-password?token=${token}`;
+
+    await sendPasswordResetEmail(user.email, resetLink, PASSWORD_RESET_EXPIRATION_MINUTES);
+
+    console.log(`Password reset requested for: ${email}`);
+    return res.json({ message: genericMessage });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ message: "Erro ao processar solicitação" });
+  }
+});
+
+router.get("/auth/validate-reset-token/:token", async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    if (!token) {
+      return res.status(400).json({ valid: false, message: "Token inválido" });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.tokenHash, tokenHash))
+      .limit(1);
+
+    if (!resetToken) {
+      return res.status(400).json({ valid: false, message: "Token inválido ou expirado" });
+    }
+
+    if (resetToken.usedAt) {
+      return res.status(400).json({ valid: false, message: "Este link já foi utilizado" });
+    }
+
+    if (new Date() > resetToken.expiresAt) {
+      return res.status(400).json({ valid: false, message: "Token expirado. Solicite um novo link." });
+    }
+
+    return res.json({ valid: true });
+  } catch (error) {
+    console.error("Validate reset token error:", error);
+    return res.status(500).json({ valid: false, message: "Erro ao validar token" });
+  }
+});
+
+router.post("/auth/reset-password", async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+    
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token e nova senha são obrigatórios" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "A senha deve ter pelo menos 6 caracteres" });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.tokenHash, tokenHash))
+      .limit(1);
+
+    if (!resetToken) {
+      return res.status(400).json({ message: "Token inválido ou expirado" });
+    }
+
+    if (resetToken.usedAt) {
+      return res.status(400).json({ message: "Este link já foi utilizado" });
+    }
+
+    if (new Date() > resetToken.expiresAt) {
+      return res.status(400).json({ message: "Token expirado. Solicite um novo link." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, resetToken.userId));
+    
+    await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, resetToken.id));
+
+    console.log(`Password reset completed for user ID: ${resetToken.userId}`);
+    return res.json({ message: "Senha alterada com sucesso" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({ message: "Erro ao redefinir senha" });
   }
 });
 
