@@ -72,9 +72,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, user, o
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigate('search')}>
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-              R
+              A
             </div>
-            <span className="text-xl font-bold text-dark tracking-tight">RoomBooker</span>
+            <span className="text-xl font-bold text-dark tracking-tight">AgendaFácil</span>
           </div>
           {onMobileClose && (
             <button onClick={onMobileClose} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">

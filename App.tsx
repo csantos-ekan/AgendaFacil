@@ -367,9 +367,9 @@ const App: React.FC = () => {
             </button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-                R
+                A
               </div>
-              <span className="text-lg font-bold text-dark tracking-tight">RoomBooker</span>
+              <span className="text-lg font-bold text-dark tracking-tight">AgendaFácil</span>
             </div>
           </div>
           <div className="flex items-center gap-2">

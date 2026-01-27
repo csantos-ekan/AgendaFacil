@@ -1,8 +1,8 @@
-# RoomBooker Corporate
+# AgendaFácil
 
 ## Overview
 
-RoomBooker Corporate is a full-stack application designed for managing meeting room reservations within a corporate environment. It enables employees to book meeting rooms and allows administrators to manage users, rooms, and resources. The project aims to streamline the booking process, optimize resource allocation, and enhance corporate efficiency. Key capabilities include robust reservation conflict validation, user and admin management dashboards, and integration with external communication and calendaring services.
+AgendaFácil é uma aplicação full-stack projetada para gerenciar reservas de salas de reunião em ambiente corporativo. It enables employees to book meeting rooms and allows administrators to manage users, rooms, and resources. The project aims to streamline the booking process, optimize resource allocation, and enhance corporate efficiency. Key capabilities include robust reservation conflict validation, user and admin management dashboards, and integration with external communication and calendaring services.
 
 ## User Preferences
 

@@ -96,7 +96,7 @@ function buildReservationEmailHtml(data: ReservationEmailData): string {
           </div>
           
           <div class="footer">
-            <p>Este é um e-mail automático do sistema RoomBooker Corporate.</p>
+            <p>Este é um e-mail automático do sistema AgendaFácil.</p>
           </div>
         </div>
       </div>
@@ -192,7 +192,7 @@ function buildPasswordResetEmailHtml(resetLink: string, expirationMinutes: numbe
           </p>
           
           <div class="footer">
-            <p>Este é um e-mail automático do sistema RoomBooker Corporate.</p>
+            <p>Este é um e-mail automático do sistema AgendaFácil.</p>
             <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
             <p style="word-break: break-all; color: #3B82F6;">${resetLink}</p>
           </div>

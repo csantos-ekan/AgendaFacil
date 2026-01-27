@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex justify-between h-16 items-center">
           {/* Breadcrumbs for desktop only */}
           <div className="hidden lg:flex items-center gap-2 text-gray-400 text-sm font-medium">
-            <span>Sistema RoomBooker</span>
+            <span>AgendaFácil</span>
             <span>/</span>
             <span className="text-dark">
               {getBreadcrumbLabel()}

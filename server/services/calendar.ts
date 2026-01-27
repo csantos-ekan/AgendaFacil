@@ -77,7 +77,7 @@ export async function testCalendarConnection(): Promise<CalendarTestResult> {
     const endTime = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
     const testEvent = {
-      summary: '[TESTE] Evento de Teste - RoomBooker',
+      summary: '[TESTE] Evento de Teste - AgendaFácil',
       description: 'Este é um evento de teste para verificar a integração com o Google Calendar. Pode ser excluído.',
       start: {
         dateTime: startTime.toISOString(),

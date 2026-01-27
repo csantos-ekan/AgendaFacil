@@ -192,7 +192,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
       {/* Footer Branding */}
       <p className="mt-8 text-gray-400 text-xs font-medium">
-        © 2025 RoomBooker Corporate. Todos os direitos reservados.
+        © 2025 AgendaFácil. Todos os direitos reservados.
       </p>
 
       <ForgotPasswordModal 
