@@ -351,6 +351,13 @@ export const api = {
       });
       return handleResponse(response);
     },
+    cancelSeries: async (seriesId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/reservations/series/${seriesId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(response);
+    },
   },
 };
 
@@ -370,4 +377,5 @@ export interface AdminReservation {
   userId: number;
   userName: string;
   userEmail: string;
+  seriesId: string | null;
 }

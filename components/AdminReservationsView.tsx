@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Mail, XCircle, CheckCircle2, Filter, Trash2, ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import { api, AdminReservation } from '../lib/api';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -20,6 +20,7 @@ export const AdminReservationsView: React.FC = () => {
   const [showToast, setShowToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({show: false, msg: '', type: 'success'});
   const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [seriesChoiceReservation, setSeriesChoiceReservation] = useState<AdminReservation | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -75,6 +76,46 @@ export const AdminReservationsView: React.FC = () => {
     } catch (error: any) {
       console.error('Error cancelling reservation:', error);
       triggerToast(error.message || 'Erro ao cancelar reserva', 'error');
+    }
+  };
+
+  const handleCancelSeries = async (seriesId: string) => {
+    try {
+      await api.admin.cancelSeries(seriesId);
+      triggerToast('Série de reservas cancelada com sucesso!', 'success');
+      setSeriesChoiceReservation(null);
+      loadReservations();
+    } catch (error: any) {
+      console.error('Error cancelling series:', error);
+      triggerToast(error.message || 'Erro ao cancelar série', 'error');
+    }
+  };
+
+  const handleCancelClick = (reservation: AdminReservation) => {
+    if (reservation.seriesId) {
+      setSeriesChoiceReservation(reservation);
+    } else {
+      setCancelConfirmId(reservation.id);
+    }
+  };
+
+  const handleSeriesChoiceSingle = async () => {
+    if (seriesChoiceReservation) {
+      try {
+        await api.admin.cancelReservation(seriesChoiceReservation.id);
+        triggerToast('Reserva cancelada com sucesso!', 'success');
+        setSeriesChoiceReservation(null);
+        loadReservations();
+      } catch (error: any) {
+        console.error('Error cancelling reservation:', error);
+        triggerToast(error.message || 'Erro ao cancelar reserva', 'error');
+      }
+    }
+  };
+
+  const handleSeriesChoiceAll = async () => {
+    if (seriesChoiceReservation?.seriesId) {
+      await handleCancelSeries(seriesChoiceReservation.seriesId);
     }
   };
 
@@ -155,6 +196,46 @@ export const AdminReservationsView: React.FC = () => {
               </Button>
               <Button variant="destructive" onClick={() => handleDeleteReservation(deleteConfirmId)}>
                 Excluir Reserva
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesChoiceReservation !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Repeat className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Reserva de Série</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Esta reserva faz parte de uma série recorrente.
+            </p>
+            <p className="text-gray-600 mb-6">
+              O que você deseja cancelar?
+            </p>
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={handleSeriesChoiceSingle}
+              >
+                Cancelar apenas esta reserva ({formatDate(seriesChoiceReservation.date)})
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="w-full justify-start"
+                onClick={handleSeriesChoiceAll}
+              >
+                Cancelar toda a série
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => setSeriesChoiceReservation(null)}
+              >
+                Voltar
               </Button>
             </div>
           </div>
@@ -254,7 +335,15 @@ export const AdminReservationsView: React.FC = () => {
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-gray-900">{reservation.roomName}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{reservation.roomName}</span>
+                            {reservation.seriesId && (
+                              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                <Repeat className="w-3 h-3" />
+                                Série
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-sm text-gray-500">{reservation.roomLocation}</div>
                         </div>
                       </div>
@@ -312,7 +401,7 @@ export const AdminReservationsView: React.FC = () => {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => setCancelConfirmId(reservation.id)}
+                                onClick={() => handleCancelClick(reservation)}
                               >
                                 Cancelar
                               </Button>

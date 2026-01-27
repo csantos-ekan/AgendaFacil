@@ -1319,6 +1319,7 @@ router.get("/admin/reservations", authMiddleware, adminMiddleware, async (req: R
         userId: reservations.userId,
         userName: users.name,
         userEmail: users.email,
+        seriesId: reservations.seriesId,
       })
       .from(reservations)
       .leftJoin(users, eq(reservations.userId, users.id))
