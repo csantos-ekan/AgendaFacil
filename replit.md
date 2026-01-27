@@ -82,11 +82,6 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 - `PUT /api/reservations/:id` - Atualizar reserva
 - `DELETE /api/reservations/:id` - Excluir reserva
 
-## Credenciais de Teste
-
-- **Admin**: admin@empresa.com / admin123
-- **Colaborador**: colab@empresa.com / colab123
-
 ## Scripts
 
 - `npm run dev` - Iniciar servidor de desenvolvimento (backend + frontend)
