@@ -116,6 +116,26 @@ export const api = {
       const response = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
       return handleResponse(response);
     },
+    forgotPassword: async (email: string): Promise<{ message: string }> => {
+      const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      return handleResponse(response);
+    },
+    validateResetToken: async (token: string): Promise<{ valid: boolean; message?: string }> => {
+      const response = await fetch(`${API_BASE}/auth/validate-reset-token/${token}`);
+      return handleResponse(response);
+    },
+    resetPassword: async (token: string, password: string): Promise<{ message: string }> => {
+      const response = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      return handleResponse(response);
+    },
   },
 
   users: {

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { api } from '../lib/api';
 import { User } from '../types';
 
@@ -41,6 +42,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -140,7 +142,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               />
             </div>
             <div className="flex justify-end mt-2">
-              <button type="button" className="text-xs font-semibold text-primary hover:text-primary-hover transition-colors">
+              <button 
+                type="button" 
+                onClick={() => setShowForgotPassword(true)}
+                className="text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
+              >
                 Esqueceu a senha?
               </button>
             </div>
@@ -188,6 +194,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       <p className="mt-8 text-gray-400 text-xs font-medium">
         © 2025 RoomBooker Corporate. Todos os direitos reservados.
       </p>
+
+      <ForgotPasswordModal 
+        isOpen={showForgotPassword} 
+        onClose={() => setShowForgotPassword(false)} 
+      />
     </div>
   );
 };

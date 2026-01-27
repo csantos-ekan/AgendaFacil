@@ -11,6 +11,7 @@ import { UsersManagementView } from './components/UsersManagementView';
 import { RoomsManagementView } from './components/RoomsManagementView';
 import { ResourcesManagementView } from './components/ResourcesManagementView';
 import { AdminReservationsView } from './components/AdminReservationsView';
+import { ResetPasswordView } from './components/ResetPasswordView';
 import { INITIAL_FILTERS } from './constants';
 import { Room, ViewState, SearchFilters as FilterType, Reservation, User, Amenity } from './types';
 import { CheckCircle2, AlertCircle, Menu } from 'lucide-react';
@@ -33,10 +34,22 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [allUsers, setAllUsers] = useState<{id: number; name: string; email: string; avatar?: string | null}[]>([]);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [resetPasswordToken, setResetPasswordToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkStoredAuth = async () => {
+      const pathname = window.location.pathname;
       const urlParams = new URLSearchParams(window.location.search);
+      
+      if (pathname === '/reset-password') {
+        const token = urlParams.get('token');
+        if (token) {
+          setResetPasswordToken(token);
+          setIsCheckingAuth(false);
+          return;
+        }
+      }
+      
       const oauthToken = urlParams.get('token');
       const oauthUser = urlParams.get('user');
       
@@ -311,6 +324,18 @@ const App: React.FC = () => {
           <p className="text-gray-600">Carregando...</p>
         </div>
       </div>
+    );
+  }
+
+  if (resetPasswordToken) {
+    return (
+      <ResetPasswordView 
+        token={resetPasswordToken} 
+        onBackToLogin={() => {
+          setResetPasswordToken(null);
+          window.history.replaceState({}, document.title, '/');
+        }} 
+      />
     );
   }
 
