@@ -1,0 +1,68 @@
+Objetivo:
+Criar e organizar arquivos de documentação técnica do projeto,
+seguindo boas práticas de engenharia de software.
+
+Arquivos que devem ser criados na raiz do projeto:
+
+1) AI_INTEGRATION.md
+Conteúdo esperado:
+- Descrição das integrações com IA (se existentes ou planejadas)
+- Pontos onde IA pode ser utilizada futuramente
+- Boas práticas para integração com serviços de IA
+- Limitações e cuidados de segurança
+
+2) API.md
+Conteúdo esperado:
+- Documentação dos endpoints da API
+- Métodos (GET, POST, PUT, DELETE)
+- Parâmetros esperados
+- Exemplo de request e response
+- Regras de autenticação e autorização
+
+3) ARCHITECTURE.md
+Conteúdo esperado:
+- Visão geral da arquitetura do sistema
+- Separação entre frontend, backend e banco de dados
+- Fluxos principais (autenticação, reservas, cancelamento)
+- Decisões arquiteturais importantes
+
+4) CHANGELOG.md
+Conteúdo esperado:
+- Histórico de mudanças do projeto
+- Estrutura baseada em versões
+- Datas das alterações
+- Principais melhorias, correções e breaking changes
+
+5) DEVELOPMENT.md
+Conteúdo esperado:
+- Guia para desenvolvedores
+- Como rodar o projeto localmente
+- Variáveis de ambiente necessárias
+- Padrões de código
+- Fluxo de contribuição e boas práticas
+
+6) SECURITY.md
+Conteúdo esperado:
+- Visão geral de segurança do sistema
+- Autenticação e autorização
+- Proteção de dados sensíveis
+- Uso de variáveis de ambiente
+- Boas práticas relacionadas à LGPD
+- Limitações conhecidas
+
+Requisitos gerais:
+- Documentação clara, objetiva e bem organizada
+- Linguagem técnica, porém acessível
+- Usar Markdown corretamente
+- Evitar informações sensíveis reais (usar exemplos)
+- Manter consistência entre os arquivos
+
+Escopo:
+- Criar apenas documentação
+- Não alterar código do sistema
+- Não incluir segredos ou credenciais reais
+
+Resultado esperado:
+- Arquivos criados e organizados na raiz do projeto
+- Documentação suficiente para onboarding de novos desenvolvedores
+- Projeto mais profissional e fácil de manter
