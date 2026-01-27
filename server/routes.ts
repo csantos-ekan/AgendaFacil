@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { validateReservationTime } from "./validation";
 import { checkAllRoomsAvailability } from "./availability";
 import { parseParticipantEmails, sendPasswordResetEmail } from "./services/email";
-import { createCalendarEvent, createRecurringCalendarEvent, deleteCalendarEvent, testCalendarConnection } from "./services/calendar";
+import { createCalendarEvent, createRecurringCalendarEvent, deleteCalendarEvent, deleteCalendarEventInstance, testCalendarConnection } from "./services/calendar";
 import { generateToken, authMiddleware, adminMiddleware } from "./auth";
 import { encryptCPF, decryptCPF } from "./encryption";
 import { auditMiddleware } from "./audit";
@@ -1183,11 +1183,20 @@ router.put("/reservations/:id", authMiddleware, async (req: Request, res: Respon
       const existingReservation = await storage.getReservation(reservationId);
       if (existingReservation?.calendarEventId) {
         try {
-          const calendarDeleted = await deleteCalendarEvent(existingReservation.calendarEventId);
-          if (calendarDeleted) {
-            console.log(`Calendar event ${existingReservation.calendarEventId} deleted for cancelled reservation ${reservationId}`);
+          if (existingReservation.seriesId) {
+            const calendarDeleted = await deleteCalendarEventInstance(existingReservation.calendarEventId, existingReservation.date);
+            if (calendarDeleted) {
+              console.log(`Calendar event instance on ${existingReservation.date} deleted for cancelled reservation ${reservationId}`);
+            } else {
+              console.warn(`Failed to delete calendar event instance on ${existingReservation.date} - participants may not be notified`);
+            }
           } else {
-            console.warn(`Failed to delete calendar event ${existingReservation.calendarEventId} - participants may not be notified`);
+            const calendarDeleted = await deleteCalendarEvent(existingReservation.calendarEventId);
+            if (calendarDeleted) {
+              console.log(`Calendar event ${existingReservation.calendarEventId} deleted for cancelled reservation ${reservationId}`);
+            } else {
+              console.warn(`Failed to delete calendar event ${existingReservation.calendarEventId} - participants may not be notified`);
+            }
           }
         } catch (err) {
           console.error('Error deleting calendar event on cancellation:', err);
@@ -1219,11 +1228,20 @@ router.delete("/reservations/:id", authMiddleware, auditMiddleware('reservation'
     
     if (reservation.calendarEventId) {
       try {
-        const calendarDeleted = await deleteCalendarEvent(reservation.calendarEventId);
-        if (calendarDeleted) {
-          console.log(`Calendar event ${reservation.calendarEventId} deleted for reservation ${reservationId}`);
+        if (reservation.seriesId) {
+          const calendarDeleted = await deleteCalendarEventInstance(reservation.calendarEventId, reservation.date);
+          if (calendarDeleted) {
+            console.log(`Calendar event instance on ${reservation.date} deleted for reservation ${reservationId}`);
+          } else {
+            console.warn(`Failed to delete calendar event instance on ${reservation.date} - participants may not be notified`);
+          }
         } else {
-          console.warn(`Failed to delete calendar event ${reservation.calendarEventId} - participants may not be notified`);
+          const calendarDeleted = await deleteCalendarEvent(reservation.calendarEventId);
+          if (calendarDeleted) {
+            console.log(`Calendar event ${reservation.calendarEventId} deleted for reservation ${reservationId}`);
+          } else {
+            console.warn(`Failed to delete calendar event ${reservation.calendarEventId} - participants may not be notified`);
+          }
         }
       } catch (err) {
         console.error('Error deleting calendar event:', err);
@@ -1354,9 +1372,16 @@ router.put("/admin/reservations/:id/cancel", authMiddleware, adminMiddleware, as
     
     if (reservation.calendarEventId) {
       try {
-        const calendarDeleted = await deleteCalendarEvent(reservation.calendarEventId);
-        if (calendarDeleted) {
-          console.log(`Calendar event ${reservation.calendarEventId} deleted by admin for reservation ${reservationId}`);
+        if (reservation.seriesId) {
+          const calendarDeleted = await deleteCalendarEventInstance(reservation.calendarEventId, reservation.date);
+          if (calendarDeleted) {
+            console.log(`Calendar event instance on ${reservation.date} deleted by admin for reservation ${reservationId}`);
+          }
+        } else {
+          const calendarDeleted = await deleteCalendarEvent(reservation.calendarEventId);
+          if (calendarDeleted) {
+            console.log(`Calendar event ${reservation.calendarEventId} deleted by admin for reservation ${reservationId}`);
+          }
         }
       } catch (err) {
         console.error('Error deleting calendar event on admin cancellation:', err);

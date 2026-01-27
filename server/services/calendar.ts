@@ -349,3 +349,83 @@ export async function deleteCalendarEvent(eventId: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function deleteCalendarEventInstance(recurringEventId: string, instanceDate: string): Promise<boolean> {
+  const auth = getCalendarAuth();
+  
+  if (!auth) {
+    console.log('Calendar event instance deletion skipped: Google Calendar not configured');
+    return false;
+  }
+
+  try {
+    const calendar = google.calendar({ version: 'v3', auth });
+    
+    const targetDate = new Date(instanceDate + 'T00:00:00');
+    const timeMin = new Date(targetDate);
+    timeMin.setHours(0, 0, 0, 0);
+    const timeMax = new Date(targetDate);
+    timeMax.setHours(23, 59, 59, 999);
+    
+    console.log(`[Calendar] Looking for instance of event ${recurringEventId} on date ${instanceDate}`);
+    
+    const instancesResult = await calendar.events.instances({
+      calendarId: 'primary',
+      eventId: recurringEventId,
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString()
+    });
+    
+    const instances = instancesResult.data.items || [];
+    console.log(`[Calendar] Found ${instances.length} instances for date ${instanceDate}`);
+    
+    if (instances.length === 0) {
+      console.log(`[Calendar] No instance found for date ${instanceDate}, trying to list events...`);
+      
+      const eventsResult = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: timeMin.toISOString(),
+        timeMax: timeMax.toISOString(),
+        singleEvents: true,
+        orderBy: 'startTime'
+      });
+      
+      const matchingEvent = eventsResult.data.items?.find(
+        event => event.recurringEventId === recurringEventId
+      );
+      
+      if (matchingEvent) {
+        console.log(`[Calendar] Found matching event via list: ${matchingEvent.id}`);
+        await calendar.events.delete({
+          calendarId: 'primary',
+          eventId: matchingEvent.id!,
+          sendUpdates: 'all'
+        });
+        console.log(`[Calendar] Successfully deleted instance ${matchingEvent.id}`);
+        return true;
+      }
+      
+      console.log(`[Calendar] No matching event found for date ${instanceDate}`);
+      return false;
+    }
+    
+    const instanceToDelete = instances[0];
+    console.log(`[Calendar] Deleting instance: ${instanceToDelete.id}`);
+    
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: instanceToDelete.id!,
+      sendUpdates: 'all'
+    });
+
+    console.log(`[Calendar] Successfully deleted instance of event ${recurringEventId} on ${instanceDate}`);
+    return true;
+  } catch (error: any) {
+    if (error.code === 404 || error.code === 410) {
+      console.log(`[Calendar] Event instance not found (may have been already deleted)`);
+      return true;
+    }
+    console.error('[Calendar] Error deleting calendar event instance:', error);
+    return false;
+  }
+}
