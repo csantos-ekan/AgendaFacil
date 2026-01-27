@@ -1,0 +1,68 @@
+Realizar uma revisão geral de segurança do sistema, identificar possíveis
+vulnerabilidades e sugerir melhorias, incluindo adequações básicas à LGPD.
+
+Escopo da revisão:
+
+1) Revisão de rotas e controle de acesso
+- Validar se todas as rotas sensíveis estão protegidas
+- Garantir que:
+  - Rotas de admin sejam acessíveis apenas por usuários ADMIN
+  - Usuários comuns não consigam acessar dados de outros usuários
+- Verificar validação de permissões no backend
+- Não confiar apenas em validações no front-end
+
+2) Análise de vulnerabilidades
+- Procurar por possíveis vulnerabilidades comuns, como:
+  - Acesso não autorizado
+  - Falta de validação de entrada (input)
+  - Possibilidade de injeção (SQL/NoSQL)
+  - Exposição de dados sensíveis
+- Verificar tratamento de erros e mensagens retornadas pela API
+- Avaliar armazenamento e uso de tokens/sessões
+
+3) Segurança geral do sistema
+- Verificar uso correto de:
+  - Hash de senha
+  - Variáveis de ambiente
+  - HTTPS (quando aplicável)
+- Avaliar configuração de autenticação e autorização
+- Verificar políticas básicas de senha e sessão
+
+4) Revisão do .gitignore
+- Revisar o arquivo .gitignore
+- Garantir que arquivos sensíveis NÃO sejam versionados, como:
+  - .env
+  - Credenciais
+  - Chaves de API
+  - Arquivos de build temporários
+- Sugerir ajustes necessários
+
+5) Pontos de melhoria relacionados à LGPD
+- Identificar quais dados pessoais são armazenados:
+  - Nome
+  - E-mail
+  - CPF
+- Avaliar:
+  - Necessidade real de cada dado
+  - Forma de armazenamento
+- Sugerir melhorias como:
+  - Minimização de dados
+  - Mascaramento de dados sensíveis
+  - Limitação de acesso a dados pessoais
+  - Boas práticas de retenção e exclusão de dados
+
+Formato do resultado esperado:
+- Lista de problemas encontrados (se houver)
+- Classificação por nível de risco (baixo / médio / alto)
+- Sugestões práticas de correção
+- Sugestões de melhorias futuras (opcional)
+
+Escopo fora:
+- Não realizar testes de penetração avançados
+- Não implementar certificações formais
+- Não alterar regras de negócio
+
+Resultado esperado:
+- Sistema mais seguro
+- Código mais organizado
+- Melhor aderência às boas práticas de segurança e LGPD
