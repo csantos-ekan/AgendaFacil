@@ -95,6 +95,28 @@ Aplicação full-stack para gerenciamento de reservas de salas de reunião em am
 
 ## Mudanças Recentes
 
+### 2026-01-27
+- Revisão de segurança e correções LGPD
+  - JWT_SECRET obrigatório: servidor não inicia se variável não estiver configurada
+  - Verificação de propriedade: usuários só podem acessar/editar seus próprios dados
+  - CPF mascarado: usuários comuns veem ***.***.*XX-XX, apenas admins veem CPF completo
+  - CORS restrito: apenas origens permitidas (Replit domains e localhost)
+  - Trust proxy configurado para rate limiting funcionar corretamente
+  - Endpoint /auth/me também aplica mascaramento de CPF
+  - Endpoint de avatar também verifica propriedade do perfil
+
+### 2026-01-26
+- Confirmação de cancelamento em "Minhas Reservas"
+  - Modal de confirmação ao cancelar reserva individual
+  - Modal de confirmação ao cancelar série de reservas
+- Botão de excluir em "Gerenciar Reservas" (admin)
+  - Ícone de lixeira na coluna Ações
+  - Modal de confirmação antes de excluir
+- Paginação em "Gerenciar Reservas"
+  - 10 reservas por página
+  - Navegação com setas e números de página
+- Campo CPF opcional no cadastro de usuário
+
 ### 2026-01-23
 - Autenticação via Google OAuth 2.0
   - Botão "Entrar com Google" na tela de login

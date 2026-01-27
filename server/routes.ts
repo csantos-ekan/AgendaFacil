@@ -16,6 +16,12 @@ import { auditLogs, reservations, users, rooms } from "../shared/schema";
 
 export const router = Router();
 
+function maskCPF(cpf: string): string {
+  const numbers = cpf.replace(/\D/g, '');
+  if (numbers.length !== 11) return '***.***.***-**';
+  return `***.***.*${numbers.slice(7, 9)}-${numbers.slice(9)}`;
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -38,10 +44,12 @@ router.get("/auth/me", authMiddleware, async (req: Request, res: Response) => {
     }
     
     const { password: _, cpf, ...userData } = user;
+    const decryptedCPF = cpf ? decryptCPF(cpf) : undefined;
+    const isAdmin = req.userRole === 'admin';
     return res.json({ 
       user: {
         ...userData,
-        cpf: cpf ? decryptCPF(cpf) : undefined
+        cpf: decryptedCPF ? (isAdmin ? decryptedCPF : maskCPF(decryptedCPF)) : undefined
       }
     });
   } catch (error) {
@@ -191,14 +199,23 @@ router.get("/users", authMiddleware, adminMiddleware, async (_req: Request, res:
 
 router.get("/users/:id", authMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
-    const user = await storage.getUser(parseInt(req.params.id));
+    const requestedId = parseInt(req.params.id);
+    const isAdmin = req.userRole === 'admin';
+    const isOwnProfile = req.userId === requestedId;
+    
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ message: "Acesso negado - Você só pode visualizar seu próprio perfil" });
+    }
+    
+    const user = await storage.getUser(requestedId);
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
     const { password, cpf, ...userData } = user;
+    const decryptedCPF = cpf ? decryptCPF(cpf) : undefined;
     const decryptedUser = {
       ...userData,
-      cpf: cpf ? decryptCPF(cpf) : undefined
+      cpf: decryptedCPF ? (isAdmin ? decryptedCPF : maskCPF(decryptedCPF)) : undefined
     };
     return res.json(decryptedUser);
   } catch (error) {
@@ -244,8 +261,21 @@ router.post("/users", authMiddleware, adminMiddleware, auditMiddleware('user'), 
 
 router.put("/users/:id", authMiddleware, auditMiddleware('user'), async (req: Request, res: Response) => {
   try {
+    const requestedId = parseInt(req.params.id);
+    const isAdmin = req.userRole === 'admin';
+    const isOwnProfile = req.userId === requestedId;
+    
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ message: "Acesso negado - Você só pode editar seu próprio perfil" });
+    }
+    
     const { name, email, password, role, status, cpf, avatar } = req.body;
-    const updateData: any = { name, email, role, status, avatar };
+    const updateData: any = { name, email, avatar };
+    
+    if (isAdmin) {
+      updateData.role = role;
+      updateData.status = status;
+    }
     
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
@@ -259,16 +289,17 @@ router.put("/users/:id", authMiddleware, auditMiddleware('user'), async (req: Re
       if (updateData[key] === undefined) delete updateData[key];
     });
 
-    const updatedUser = await storage.updateUser(parseInt(req.params.id), updateData);
+    const updatedUser = await storage.updateUser(requestedId, updateData);
     
     if (!updatedUser) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
     const { password: _, cpf: encryptedCpf, ...userData } = updatedUser;
+    const decryptedCPF = encryptedCpf ? decryptCPF(encryptedCpf) : undefined;
     return res.json({
       ...userData,
-      cpf: encryptedCpf ? decryptCPF(encryptedCpf) : undefined
+      cpf: decryptedCPF ? (isAdmin ? decryptedCPF : maskCPF(decryptedCPF)) : undefined
     });
   } catch (error) {
     console.error("Update user error:", error);
@@ -291,13 +322,21 @@ router.delete("/users/:id", authMiddleware, adminMiddleware, auditMiddleware('us
 
 router.post("/users/:id/avatar", authMiddleware, async (req: Request, res: Response) => {
   try {
+    const requestedId = parseInt(req.params.id);
+    const isAdmin = req.userRole === 'admin';
+    const isOwnProfile = req.userId === requestedId;
+    
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ message: "Acesso negado - Você só pode alterar sua própria foto" });
+    }
+    
     const { avatar } = req.body;
     
     if (!avatar) {
       return res.status(400).json({ message: "Imagem não fornecida" });
     }
 
-    const updatedUser = await storage.updateUser(parseInt(req.params.id), { avatar });
+    const updatedUser = await storage.updateUser(requestedId, { avatar });
     
     if (!updatedUser) {
       return res.status(404).json({ message: "Usuário não encontrado" });

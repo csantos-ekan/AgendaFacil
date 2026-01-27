@@ -1,7 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE-ME-IN-PRODUCTION-MIN-32-CHARS';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start without it.');
+}
 const JWT_EXPIRY = '8h';
 
 export interface TokenPayload {
