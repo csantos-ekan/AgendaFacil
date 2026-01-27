@@ -184,13 +184,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         </form>
       </div>
 
-      {/* Helper Info for Test */}
-      <div className="mt-8 p-4 bg-blue-50/50 rounded-xl border border-blue-100/50 text-center max-w-sm">
-        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mb-1">Dica de Acesso (Teste)</p>
-        <p className="text-[11px] text-blue-500">Admin: admin@empresa.com (admin123)</p>
-        <p className="text-[11px] text-blue-500">Colab: colab@empresa.com (colab123)</p>
-      </div>
-
       {/* Footer Branding */}
       <p className="mt-8 text-gray-400 text-xs font-medium">
         © 2025 RoomBooker Corporate. Todos os direitos reservados.
