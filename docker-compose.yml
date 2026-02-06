@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: agendafacil_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-senha_segura}
+      POSTGRES_DB: agendafacil
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - agendafacil_network
+
+  backend:
+    build: ./backend # Nome da sua pasta de servidor
+    container_name: agendafacil_api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-senha_segura}@db:5432/agendafacil
+    networks:
+      - agendafacil_network
+
+  frontend:
+    build: ./frontend # Nome da sua pasta de React/Vite
+    container_name: agendafacil_ui
+    restart: always
+    ports:
+      - "8070:80"
+    networks:
+      - agendafacil_network
+      - npm_network # Nome da rede do seu Nginx Proxy Manager
+    depends_on:
+      - backend
+
+networks:
+  agendafacil_network:
+    driver: bridge
+  npm_network:
+    external: true
+
+volumes:
+  pg_data:
