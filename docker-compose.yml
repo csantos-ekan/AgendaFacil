@@ -6,8 +6,8 @@ services:
     container_name: agendafacil_db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-senha_segura}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: agendafacil
     volumes:
       - pg_data:/var/lib/postgresql/data
@@ -21,7 +21,7 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-senha_segura}@db:5432/agendafacil
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/agendafacil
     networks:
       - agendafacil_network
 
