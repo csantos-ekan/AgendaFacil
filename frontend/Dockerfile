@@ -3,7 +3,8 @@ FROM node:20-alpine AS build-stage
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+#RUN npm install
+RUN npm install --no-audit --progress=false
 COPY . .
 RUN npm run build
 
