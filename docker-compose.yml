@@ -1,10 +1,25 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: agendafacil_db
+  app:
+    container_name: agenda-facil-app
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      # Conecta ao serviço 'db' definido abaixo
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/agendafacil
+      # Chave JWT (altere para produção)
+      - JWT_SECRET=docker_dev_secret_key_change_me_123
+    depends_on:
+      - db
     restart: always
+
+  db:
+    container_name: agenda-facil-db
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -30,31 +45,6 @@ services:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/agendafacil
     networks:
       - agendafacil_network
-
-  frontend:
-    build: 
-      context: ./frontend
-      network: host
-    container_name: agendafacil_ui
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    restart: always
-    ports:
-      - "8070:80"
-    networks:
-      - agendafacil_network
-      - rede-proxy-reverso
-    depends_on:
-      - backend
-
-networks:
-  agendafacil_network:
-    driver: bridge
-  # Certifique-se que esta rede já existe no Portainer/Docker:
-  # docker network create rede-proxy-reverso
-  rede-proxy-reverso:
-    external: true
 
 volumes:
   pg_data:
