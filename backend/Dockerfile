@@ -5,12 +5,13 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /usr/src/app
 
+ENV NODE_OPTIONS="--max-old-space-size=450"
+
 COPY package*.json ./
 
 # 2. Tente usar o clean install para garantir um build limpo
 #RUN npm install
-RUN npm install --no-audit --progress=false
-
+RUN npm ci --maxsockets 1 --no-audit --progress=false
 COPY . .
 
 # 3. Garanta que o build do TS funcione
