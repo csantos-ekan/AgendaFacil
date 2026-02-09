@@ -33,7 +33,7 @@ services:
       - "8070:80"
     networks:
       - agendafacil_network
-      - npm_network # Nome da rede do seu Nginx Proxy Manager
+      - rede-proxy-reverso # Nome da rede do seu Nginx Proxy Manager
       
     depends_on:
       - backend
@@ -41,7 +41,7 @@ services:
 networks:
   agendafacil_network:
     driver: bridge
-  npm_network:
+  rede-proxy-reverso:
     external: true
 
 volumes:
