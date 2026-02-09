@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 
 ENV NODE_OPTIONS="--max-old-space-size=450"
 
-COPY package*.json ./
+COPY ./package*.json ./
 
 # 2. Tente usar o clean install para garantir um build limpo
 #RUN npm install
