@@ -8,7 +8,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # 2. Tente usar o clean install para garantir um build limpo
-RUN npm install
+#RUN npm install
+RUN npm install --no-audit --progress=false
 
 COPY . .
 
