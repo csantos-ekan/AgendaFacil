@@ -3,7 +3,7 @@ FROM node:20-alpine AS build-stage
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 ENV NODE_OPTIONS="--max-old-space-size=450"
-COPY ./package*.json ./
+COPY package*.json ./
 #RUN npm install
 RUN npm ci --maxsockets 1 --no-audit --progress=false
 COPY . .
