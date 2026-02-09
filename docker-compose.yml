@@ -17,6 +17,9 @@ services:
   backend:
     build: ./backend # Nome da sua pasta de servidor
     container_name: agendafacil_api
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: always
     depends_on:
       - db
