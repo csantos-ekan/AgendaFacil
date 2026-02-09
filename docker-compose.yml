@@ -15,7 +15,10 @@ services:
       - agendafacil_network
 
   backend:
-    build: ./backend # Nome da sua pasta de servidor
+    build: 
+      context: ./backend
+      # O network host no build ajuda a evitar erros de DNS no npm install
+      network: host 
     container_name: agendafacil_api
     dns:
       - 8.8.8.8
@@ -27,23 +30,29 @@ services:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/agendafacil
     networks:
       - agendafacil_network
-      
+
   frontend:
-    build: ./frontend # Nome da sua pasta de React/Vite
+    build: 
+      context: ./frontend
+      network: host
     container_name: agendafacil_ui
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: always
     ports:
       - "8070:80"
     networks:
       - agendafacil_network
-      - rede-proxy-reverso # Nome da rede do seu Nginx Proxy Manager
-      
+      - rede-proxy-reverso
     depends_on:
       - backend
 
 networks:
   agendafacil_network:
     driver: bridge
+  # Certifique-se que esta rede já existe no Portainer/Docker:
+  # docker network create rede-proxy-reverso
   rede-proxy-reverso:
     external: true
 
