@@ -16,6 +16,8 @@ services:
     depends_on:
       - db
     restart: always
+    networks:
+      - agendafacil_network
 
   db:
     container_name: agenda-facil-db
@@ -25,26 +27,14 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: agendafacil
     volumes:
-      - pg_data:/var/lib/postgresql/data
-    networks:
-      - agendafacil_network
-
-  backend:
-    build: 
-      context: ./backend
-      # O network host no build ajuda a evitar erros de DNS no npm install
-      network: host 
-    container_name: agendafacil_api
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+      - postgres_data:/var/lib/postgresql/data
     restart: always
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/agendafacil
     networks:
       - agendafacil_network
 
 volumes:
-  pg_data:
+  postgres_data:
+
+networks:
+  agendafacil_network:
+    external: true
