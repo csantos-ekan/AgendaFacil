@@ -24,7 +24,6 @@ services:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/agendafacil
     networks:
       - agendafacil_network
-      - host
       
   frontend:
     build: ./frontend # Nome da sua pasta de React/Vite
@@ -35,7 +34,7 @@ services:
     networks:
       - agendafacil_network
       - npm_network # Nome da rede do seu Nginx Proxy Manager
-      - host
+      
     depends_on:
       - backend
 
