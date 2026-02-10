@@ -9,7 +9,8 @@
     "client": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "start": "tsx server/index.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
